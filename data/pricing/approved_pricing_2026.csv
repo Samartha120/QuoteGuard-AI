@@ -1,0 +1,4 @@
+Product Code,Product Name,Material Grade,Unit Price (INR),MoQ (Units),Bulk Discount Threshold,Bulk Discount Rate (%),Lead Time (Days)
+IV-200,Industrial Valve IV-200,SS304,4500,5,50,5.0,7
+PV-100,Pressure Relief Valve PV-100,SS304,2800,10,100,7.5,5
+FP-50,Flange Plate FP-50,Carbon Steel,850,20,200,10.0,3

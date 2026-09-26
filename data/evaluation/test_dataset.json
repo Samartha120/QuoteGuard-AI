@@ -1,0 +1,21 @@
+[
+  {
+    "eval_id": "eval_001",
+    "rfq_file": "demo_rfq_1_complete.txt",
+    "customer": "Apex Engineering Works Ltd.",
+    "expected_status": "grounded",
+    "expected_line_items": 2,
+    "expected_abstentions": 0,
+    "expected_confidence": 0.95
+  },
+  {
+    "eval_id": "eval_002",
+    "rfq_file": "demo_rfq_2_ambiguous.txt",
+    "customer": "Zenith Chemical Processing Ltd.",
+    "expected_status": "clarification_required",
+    "expected_line_items": 1,
+    "expected_abstentions": 2,
+    "unsupported_fields": ["IV-200.material_SS316", "payment_terms_90_days"],
+    "expected_confidence": 0.45
+  }
+]

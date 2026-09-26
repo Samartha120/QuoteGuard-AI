@@ -1,0 +1,29 @@
+REQUEST FOR QUOTATION (RFQ)
+
+Customer Name: Apex Engineering Works Ltd.
+Contact Person: Rajesh Kumar (Procurement Manager)
+Email: procurement@apexeng.co.in
+Date: 25th September 2026
+
+Dear Vertex Sales Team,
+
+We would like to request a formal quotation for the supply of industrial valve hardware for our upcoming refinery expansion project in Vadodara.
+
+Please provide your best price and delivery schedule for the following items:
+1. Item: Industrial Valve IV-200
+   - Specification: Standard SS304 body with PTFE seals, PN16 rating
+   - Quantity: 20 units
+
+2. Item: Pressure Relief Valve PV-100
+   - Specification: Standard SS304 seat
+   - Quantity: 15 units
+
+Required Terms:
+- Standard ex-works Pune delivery terms.
+- Payment terms: Net 30 days credit.
+
+Please send the quotation at your earliest convenience.
+
+Best regards,
+Rajesh Kumar
+Apex Engineering Works Ltd.
