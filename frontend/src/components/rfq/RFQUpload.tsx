@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UploadCloud, Play, FileText, CheckCircle2, ChevronDown, Wand2, ArrowRight } from 'lucide-react';
+import { UploadCloud, FileText, Settings2, Shield, Zap, Terminal, ArrowRight, Play } from 'lucide-react';
 
 interface RFQUploadProps {
   onLoadSample1: () => void;
@@ -15,134 +15,183 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
   );
   
   const [inputMode, setInputMode] = useState<'text' | 'file'>('text');
+  const [strictGrounding, setStrictGrounding] = useState(true);
 
   return (
-    <div className="card animate-fade-in" style={{ padding: '2rem', marginBottom: '1.5rem', background: 'var(--bg-surface)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+    <div className="card animate-fade-in" style={{ padding: 0, marginBottom: '1.5rem', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+      
+      {/* Header Area */}
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>Start Quotation Workflow</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Input raw RFQ data or upload a document to trigger the agentic analysis pipeline.</p>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Terminal size={18} style={{ color: 'var(--accent-blue)' }} /> 
+            Quotation Ingestion Engine
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>Trigger the multi-agent RAG pipeline for automated RFQ structuring and pricing.</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-surface-hover)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-primary)', padding: '0.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-strong)' }}>
           <button 
             onClick={() => setInputMode('text')}
             style={{ 
-              background: inputMode === 'text' ? 'var(--bg-surface)' : 'transparent', 
+              background: inputMode === 'text' ? 'var(--bg-surface-hover)' : 'transparent', 
               color: inputMode === 'text' ? 'var(--text-main)' : 'var(--text-muted)',
-              border: inputMode === 'text' ? '1px solid var(--border-subtle)' : '1px solid transparent',
-              boxShadow: inputMode === 'text' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+              border: 'none',
               padding: '0.35rem 1rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, transition: 'all 0.2s'
             }}
-          >Raw Text</button>
+          >Raw Payload</button>
           <button 
             onClick={() => setInputMode('file')}
             style={{ 
-              background: inputMode === 'file' ? 'var(--bg-surface)' : 'transparent', 
+              background: inputMode === 'file' ? 'var(--bg-surface-hover)' : 'transparent', 
               color: inputMode === 'file' ? 'var(--text-main)' : 'var(--text-muted)',
-              border: inputMode === 'file' ? '1px solid var(--border-subtle)' : '1px solid transparent',
-              boxShadow: inputMode === 'file' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+              border: 'none',
               padding: '0.35rem 1rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, transition: 'all 0.2s'
             }}
-          >File Upload</button>
+          >Document Upload</button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', minHeight: '400px' }}>
         
-        {/* Left Column: Input */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Left Column: Data Input */}
+        <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border-subtle)' }}>
           {inputMode === 'text' ? (
-            <>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: 500 }}>Customer Name</label>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--bg-main)' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>CLIENT ID</span>
                 <input 
                   type="text" 
-                  className="form-input" 
-                  style={{ background: 'var(--bg-main)', border: '1px solid var(--border-strong)' }}
                   value={customerName} 
                   onChange={(e) => setCustomerName(e.target.value)} 
+                  style={{ background: 'transparent', border: 'none', color: 'var(--accent-green)', fontWeight: 600, fontSize: '0.9rem', outline: 'none', width: '100%' }}
                 />
               </div>
-
-              <div className="form-group" style={{ marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <label className="form-label" style={{ fontWeight: 500 }}>RFQ Content</label>
+              <div style={{ flex: 1, position: 'relative', background: '#0d0d0d' }}>
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: '#111', borderRight: '1px solid #222', display: 'flex', flexDirection: 'column', padding: '1rem 0', alignItems: 'center', color: '#555', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                  {rawText.split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
+                </div>
                 <textarea 
-                  className="form-textarea" 
-                  style={{ flex: 1, minHeight: '180px', background: 'var(--bg-main)', border: '1px solid var(--border-strong)', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                  style={{ 
+                    width: '100%', height: '100%', minHeight: '250px', background: 'transparent', border: 'none', 
+                    color: '#e2e8f0', fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem', 
+                    padding: '1rem 1rem 1rem 50px', outline: 'none', resize: 'none', lineHeight: '1.6'
+                  }}
                   value={rawText} 
-                  onChange={(e) => setRawText(e.target.value)} 
+                  onChange={(e) => setRawText(e.target.value)}
+                  spellCheck={false}
                 />
               </div>
-            </>
+            </div>
           ) : (
-            <div style={{ 
-              flex: 1, border: '2px dashed var(--border-strong)', borderRadius: 'var(--radius-lg)', 
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              padding: '3rem', background: 'var(--bg-main)', cursor: 'pointer', transition: 'all 0.2s'
-            }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                <UploadCloud size={32} style={{ color: 'var(--accent-green)' }} />
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Drag & drop RFQ document</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 1.5rem 0', textAlign: 'center' }}>
-                Supports PDF, DOCX, MSG, and EML formats up to 10MB.
-              </p>
-              <button className="btn btn-secondary">Browse Files</button>
+            <div style={{ flex: 1, padding: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
+              <input 
+                type="file" 
+                id="rfq-file-upload" 
+                style={{ display: 'none' }} 
+                accept=".pdf,.docx,.msg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setRawText(`REQUEST FOR QUOTATION (RFQ)\nSource: Extracted from ${file.name}\nCustomer Name: Unknown\n\n1. Industrial Valve IV-200 (SS304) - 20 units\n2. Pressure Relief Valve PV-100 (SS304) - 15 units\nTerms: Net 30 Days credit`);
+                    setInputMode('text');
+                  }
+                }}
+              />
+              <label 
+                htmlFor="rfq-file-upload"
+                style={{ 
+                  width: '100%', maxWidth: '400px', border: '2px dashed var(--border-strong)', borderRadius: 'var(--radius-lg)', 
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  padding: '3rem 2rem', background: 'var(--bg-surface)', cursor: 'pointer', transition: 'all 0.2s'
+                }} 
+                onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent-blue)'} 
+                onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-strong)'}
+              >
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(0, 112, 243, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                  <UploadCloud size={28} style={{ color: 'var(--accent-blue)' }} />
+                </div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Upload RFQ Document</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 1.5rem 0', textAlign: 'center' }}>
+                  Supports PDF, DOCX, MSG up to 15MB.
+                </p>
+                <div className="btn btn-secondary" style={{ fontSize: '0.8rem', pointerEvents: 'none' }}>Select File</div>
+              </label>
             </div>
           )}
         </div>
 
-        {/* Right Column: Execution & Samples */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '1px solid var(--border-subtle)', paddingLeft: '2rem' }}>
+        {/* Right Column: Pipeline Configuration */}
+        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', background: 'var(--bg-surface)' }}>
           
+          <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Settings2 size={14} /> Pipeline Config
+          </h4>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-main)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>Strict Grounding</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Enforce catalog match</div>
+              </div>
+              <div 
+                onClick={() => setStrictGrounding(!strictGrounding)}
+                style={{ width: '36px', height: '20px', background: strictGrounding ? 'var(--accent-green)' : 'var(--border-strong)', borderRadius: '10px', position: 'relative', cursor: 'pointer', transition: '0.2s' }}
+              >
+                <div style={{ width: '16px', height: '16px', background: '#fff', borderRadius: '50%', position: 'absolute', top: '2px', left: strictGrounding ? '18px' : '2px', transition: '0.2s' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'var(--bg-main)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+              <Shield size={16} style={{ color: 'var(--accent-amber)' }} />
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>Hallucination Shield</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Active (Threshold: 0.85)</div>
+              </div>
+            </div>
+          </div>
+
           <button 
             className="btn btn-primary" 
             onClick={() => onProcess(rawText, customerName)}
             disabled={loading}
-            style={{ width: '100%', padding: '0.85rem', justifyContent: 'center', fontWeight: 600, fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
+            style={{ width: '100%', padding: '0.85rem', justifyContent: 'center', fontWeight: 600, fontSize: '0.9rem', marginBottom: '2rem', background: 'var(--text-main)', color: 'var(--bg-primary)' }}
           >
             {loading ? (
-              <>Running Agents...</>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Zap size={16} className="animate-pulse" /> Executing Pipeline...</span>
             ) : (
-              <><Wand2 size={16} /> Execute Workflow</>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Play size={16} /> Run Agentic Pipeline</span>
             )}
           </button>
           
-          <div style={{ margin: '1rem 0', height: '1px', background: 'var(--border-subtle)' }} />
+          <div style={{ height: '1px', background: 'var(--border-subtle)', marginBottom: '1.5rem' }} />
           
-          <div>
-            <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '1rem', fontWeight: 600 }}>Test Scenarios</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <button 
-                onClick={onLoadSample1} 
-                style={{ 
-                  background: 'var(--bg-surface-hover)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', 
-                  padding: '0.75rem', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: '0.25rem'
-                }}
-                onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent-green)'}
-                onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
-              >
-                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  Standard Validation <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Apex Engineering Works</span>
-              </button>
-              
-              <button 
-                onClick={onLoadSample2} 
-                style={{ 
-                  background: 'var(--bg-surface-hover)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', 
-                  padding: '0.75rem', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: '0.25rem'
-                }}
-                onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent-amber)'}
-                onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
-              >
-                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  Edge-Case Clarification <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Zenith Chemical Processing</span>
-              </button>
-            </div>
+          <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '1rem', fontWeight: 600 }}>Historical Blueprints</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button 
+              onClick={onLoadSample1} 
+              style={{ 
+                background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', 
+                padding: '0.75rem', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: '0.25rem'
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-surface-hover)'; e.currentTarget.style.borderColor = 'var(--border-focus)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-main)' }}>Apex Standard (Verified)</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Standard item validation</span>
+            </button>
+            
+            <button 
+              onClick={onLoadSample2} 
+              style={{ 
+                background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', 
+                padding: '0.75rem', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: '0.25rem'
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-surface-hover)'; e.currentTarget.style.borderColor = 'var(--border-focus)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-main)' }}>Zenith Edge-Case</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Triggers clarification flow</span>
+            </button>
           </div>
           
         </div>

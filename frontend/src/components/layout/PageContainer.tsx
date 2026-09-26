@@ -10,19 +10,21 @@ interface PageContainerProps {
 
 export const PageContainer: React.FC<PageContainerProps> = ({ title, children }) => {
   return (
-    <div className="app-container">
-      <Sidebar />
-      <div className="main-wrapper">
-        <Topbar title={title} />
-        <div className="page-scroll-container">
-          <main className="page-content animate-slide-up">
-            <div className="page-content-inner">
-              {children}
-            </div>
-          </main>
-          <Footer />
+    <div className="app-container" style={{ flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Sidebar />
+        <div className="main-wrapper">
+          <Topbar title={title} />
+          <div className="page-scroll-container">
+            <main className="page-content animate-slide-up">
+              <div className="page-content-inner">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

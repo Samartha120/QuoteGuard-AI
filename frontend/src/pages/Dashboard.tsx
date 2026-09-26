@@ -45,7 +45,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <WorkflowOverview />
-          <ActivityFeed />
+          <ActivityFeed rfqs={rfqs} />
         </div>
       </div>
     </PageContainer>
