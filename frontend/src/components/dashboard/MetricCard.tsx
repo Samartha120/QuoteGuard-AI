@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface MetricCardProps {
@@ -8,15 +8,52 @@ interface MetricCardProps {
   icon?: LucideIcon;
 }
 
+const AnimatedValue: React.FC<{ value: string | number }> = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState<string | number>(0);
+
+  useEffect(() => {
+    const stringVal = String(value);
+    const numMatch = stringVal.match(/^([\d.]+)(.*)$/);
+    
+    if (numMatch && parseFloat(numMatch[1]) > 0) {
+      const end = parseFloat(numMatch[1]);
+      const suffix = numMatch[2];
+      const isInteger = !numMatch[1].includes('.');
+      
+      let start = 0;
+      const duration = 800; // subtle, fast animation (150-300ms requested for transitions, so 800ms for counter is good)
+      const incrementTime = 20;
+      const step = (end / (duration / incrementTime));
+      
+      const timer = setInterval(() => {
+        start += step;
+        if (start >= end) {
+          clearInterval(timer);
+          setDisplayValue(stringVal);
+        } else {
+          setDisplayValue(isInteger ? Math.floor(start) + suffix : start.toFixed(2) + suffix);
+        }
+      }, incrementTime);
+      return () => clearInterval(timer);
+    } else {
+      setDisplayValue(value);
+    }
+  }, [value]);
+
+  return <>{displayValue}</>;
+};
+
 export const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtext, icon: Icon }) => {
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-        <span className="card-title">{title}</span>
-        {Icon && <Icon size={18} style={{ color: 'var(--accent-blue)' }} />}
+    <div className="metric-card animate-fade-in">
+      <div className="metric-header">
+        <span>{title}</span>
+        {Icon && <Icon size={16} />}
       </div>
-      <div className="card-value">{value}</div>
-      {subtext && <div className="card-subtext">{subtext}</div>}
+      <div className="metric-value">
+        <AnimatedValue value={value} />
+      </div>
+      {subtext && <div className="metric-subtext">{subtext}</div>}
     </div>
   );
 };

@@ -12,26 +12,24 @@ export const WorkflowOverview: React.FC = () => {
   ];
 
   return (
-    <div style={{ marginBottom: '2rem' }}>
-      <h2 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '1rem', color: '#FFFFFF' }}>
-        Agentic Quotation Pipeline Architecture
-      </h2>
-      <div className="workflow-bar">
+    <div className="card animate-fade-in animate-delay-2" style={{ marginBottom: '1.5rem', flex: 1 }}>
+      <div className="section-header" style={{ marginBottom: '1rem' }}>
+        <h3 className="section-title" style={{ fontSize: '1rem' }}>Active Pipeline</h3>
+      </div>
+      <div className="workflow-vertical" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: '11px', top: '10px', bottom: '10px', width: '1px', backgroundColor: 'var(--border-subtle)', zIndex: 0 }} />
         {steps.map((step, idx) => {
           const Icon = step.icon;
           return (
-            <React.Fragment key={idx}>
-              <div className="workflow-step">
-                <div className="step-circle active">
-                  <Icon size={20} />
-                </div>
-                <div className="step-label" style={{ fontWeight: 600, color: '#FFFFFF' }}>{step.title}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{step.desc}</div>
+            <div key={idx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', zIndex: 1 }}>
+              <div className="step-circle active" style={{ width: '24px', height: '24px', flexShrink: 0, backgroundColor: 'var(--bg-primary)' }}>
+                <Icon size={12} />
               </div>
-              {idx < steps.length - 1 && (
-                <ArrowRight size={18} style={{ color: 'var(--text-muted)' }} />
-              )}
-            </React.Fragment>
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', lineHeight: 1.2 }}>{step.title}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{step.desc}</div>
+              </div>
+            </div>
           );
         })}
       </div>

@@ -10,16 +10,18 @@ export const ActivityFeed: React.FC = () => {
   ];
 
   return (
-    <div className="card" style={{ flex: '0 0 320px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Activity size={18} style={{ color: 'var(--accent-blue)' }} />
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 600 }}>Agent Execution Audit Trail</h3>
+    <div className="card animate-fade-in animate-delay-1" style={{ flex: '0 0 320px' }}>
+      <div className="section-header" style={{ marginBottom: '1rem' }}>
+        <h3 className="section-title" style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Activity size={18} style={{ color: 'var(--text-secondary)' }} />
+          Agent Audit Trail
+        </h3>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {mockActivities.map((act, i) => (
-          <div key={i} style={{ borderLeft: '2px solid var(--accent-blue)', paddingLeft: '0.75rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-blue)' }}>{act.agent}</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-sub)', margin: '0.15rem 0' }}>{act.text}</div>
+          <div key={i} style={{ borderLeft: '2px solid var(--border-strong)', paddingLeft: '0.75rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>{act.agent}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0.2rem 0' }}>{act.text}</div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <Clock size={10} /> {act.time}
             </div>

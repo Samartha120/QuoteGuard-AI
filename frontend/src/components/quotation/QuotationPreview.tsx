@@ -22,11 +22,11 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
         onDownloadPDF={onDownloadPDF}
       />
 
-      <div className="card" style={{ background: '#1E293B', padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+      <div className="card animate-fade-in" style={{ padding: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#FFFFFF' }}>VERTEX INDUSTRIAL SUPPLIES PVT. LTD.</h2>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Authorized Industrial Flow Control Valves Distributor</div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>VERTEX INDUSTRIAL SUPPLIES PVT. LTD.</h2>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Authorized Industrial Flow Control Valves Distributor</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-blue)' }}>{quotation.quotation_number}</div>
@@ -60,7 +60,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
           </table>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
           <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Subtotal:</span>
@@ -70,7 +70,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
               <span>GST (18%):</span>
               <span>₹{quotation.tax_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-blue)', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem' }}>
               <span>Total Amount:</span>
               <span>₹{quotation.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>

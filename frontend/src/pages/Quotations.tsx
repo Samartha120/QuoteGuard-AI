@@ -10,10 +10,10 @@ export const Quotations: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <PageContainer title="Generated B2B Quotations Management">
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#FFFFFF' }}>Quotation Register</h3>
+    <PageContainer title="Quotations Management">
+      <div className="card animate-fade-in">
+        <div className="section-header">
+          <h3 className="section-title">Quotation Register</h3>
         </div>
 
         <div className="table-container">
@@ -40,11 +40,11 @@ export const Quotations: React.FC = () => {
               ) : (
                 quotations.map((q) => (
                   <tr key={q.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{q.quotation_number}</td>
-                    <td style={{ fontWeight: 600, color: '#FFFFFF' }}>{q.customer_name}</td>
-                    <td>₹{q.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td>₹{q.tax_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td style={{ fontWeight: 600, color: '#FFFFFF' }}>₹{q.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td style={{ fontWeight: 500, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>{q.quotation_number}</td>
+                    <td style={{ fontWeight: 500, color: 'var(--text-main)' }}>{q.customer_name}</td>
+                    <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{q.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{q.tax_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>₹{q.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                     <td>
                       <span className={`badge ${q.status === 'APPROVED' ? 'badge-grounded' : 'badge-abstained'}`}>
                         {q.status}
@@ -57,10 +57,10 @@ export const Quotations: React.FC = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => navigate(`/quotations/${q.id}`)}>
+                        <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }} onClick={() => navigate(`/quotations/${q.id}`)}>
                           Inspect
                         </button>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => window.open(quotationApi.downloadPDFUrl(q.id), '_blank')}>
+                        <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }} onClick={() => window.open(quotationApi.downloadPDFUrl(q.id), '_blank')}>
                           <Download size={12} /> PDF
                         </button>
                       </div>

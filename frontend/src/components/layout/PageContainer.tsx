@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { Footer } from './Footer';
 
 interface PageContainerProps {
   title: string;
@@ -13,9 +14,14 @@ export const PageContainer: React.FC<PageContainerProps> = ({ title, children })
       <Sidebar />
       <div className="main-wrapper">
         <Topbar title={title} />
-        <main className="page-container">
-          {children}
-        </main>
+        <div className="page-scroll-container">
+          <main className="page-content animate-slide-up">
+            <div className="page-content-inner">
+              {children}
+            </div>
+          </main>
+          <Footer />
+        </div>
       </div>
     </div>
   );

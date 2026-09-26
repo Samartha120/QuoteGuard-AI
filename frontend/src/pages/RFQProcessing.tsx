@@ -38,16 +38,20 @@ export const RFQProcessing: React.FC = () => {
 
   return (
     <PageContainer title="Source-Grounded RFQ Agentic Pipeline">
-      <RFQUpload 
-        onLoadSample1={() => handleProcess(sample1, 'Apex Engineering Works Ltd.')}
-        onLoadSample2={() => handleProcess(sample2, 'Zenith Chemical Processing Ltd.')}
-        onProcess={(text, cust) => handleProcess(text, cust)}
-        loading={loading}
-      />
+      <div className="animate-fade-in animate-delay-1">
+        <RFQUpload 
+          onLoadSample1={() => handleProcess(sample1, 'Apex Engineering Works Ltd.')}
+          onLoadSample2={() => handleProcess(sample2, 'Zenith Chemical Processing Ltd.')}
+          onProcess={(text, cust) => handleProcess(text, cust)}
+          loading={loading}
+        />
+      </div>
 
       {currentRFQ && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {currentRFQ.agent_runs && <AgentProgress agentRuns={currentRFQ.agent_runs} />}
+        <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {currentRFQ.agent_runs && (
+            <AgentProgress agentRuns={currentRFQ.agent_runs} />
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <RFQInput rawText={currentRFQ.raw_text} customerName={currentRFQ.customer_name} />
@@ -55,27 +59,31 @@ export const RFQProcessing: React.FC = () => {
           </div>
 
           {activeQuotation && activeQuotation.status === 'CLARIFICATION_REQUIRED' && (
-            <ClarificationPanel 
-              questions={activeQuotation.clarification_questions || []} 
-              notes={activeQuotation.escalation_notes}
-            />
+            <div className="animate-slide-up animate-delay-1">
+              <ClarificationPanel 
+                questions={activeQuotation.clarification_questions || []} 
+                notes={activeQuotation.escalation_notes}
+              />
+            </div>
           )}
 
           {activeQuotation && (
-            <QuotationPreview 
-              quotation={activeQuotation}
-              onApprove={async (notes) => {
-                const updated = await approveQuotation(activeQuotation.id, notes);
-                setActiveQuotation(updated);
-              }}
-              onReject={async (notes) => {
-                const updated = await rejectQuotation(activeQuotation.id, notes);
-                setActiveQuotation(updated);
-              }}
-              onDownloadPDF={() => {
-                window.open(quotationApi.downloadPDFUrl(activeQuotation.id), '_blank');
-              }}
-            />
+            <div className="animate-slide-up animate-delay-2">
+              <QuotationPreview 
+                quotation={activeQuotation}
+                onApprove={async (notes) => {
+                  const updated = await approveQuotation(activeQuotation.id, notes);
+                  setActiveQuotation(updated);
+                }}
+                onReject={async (notes) => {
+                  const updated = await rejectQuotation(activeQuotation.id, notes);
+                  setActiveQuotation(updated);
+                }}
+                onDownloadPDF={() => {
+                  window.open(quotationApi.downloadPDFUrl(activeQuotation.id), '_blank');
+                }}
+              />
+            </div>
           )}
         </div>
       )}

@@ -11,10 +11,10 @@ export const RecentRFQs: React.FC<RecentRFQsProps> = ({ rfqs }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="card" style={{ flex: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 600 }}>Recent Enquiries & RFQs</h3>
-        <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }} onClick={() => navigate('/rfq-processing')}>
+    <div className="card animate-fade-in" style={{ flex: 2 }}>
+      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 className="section-title" style={{ fontSize: '1.1rem' }}>Recent Operational RFQs</h3>
+        <button className="btn btn-secondary" onClick={() => navigate('/rfq-processing')}>
           View All RFQs
         </button>
       </div>
@@ -58,8 +58,8 @@ export const RecentRFQs: React.FC<RecentRFQsProps> = ({ rfqs }) => {
                     )}
                   </td>
                   <td>
-                    <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => navigate(`/rfq-processing`)}>
-                      Inspect <ArrowUpRight size={12} />
+                    <button className="btn btn-secondary" onClick={() => navigate(`/rfq-processing`)}>
+                      Inspect <ArrowUpRight size={14} />
                     </button>
                   </td>
                 </tr>
