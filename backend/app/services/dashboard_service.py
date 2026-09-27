@@ -6,9 +6,16 @@ def get_dashboard_summary(db: Session):
     total_quotations = db.query(Quotation).count()
     pending_approvals = db.query(Quotation).filter(Quotation.status == "PENDING_APPROVAL").count()
     clarification_cases = db.query(Quotation).filter(Quotation.status == "CLARIFICATION_REQUIRED").count()
-    
+
     grounded_count = db.query(Quotation).filter(Quotation.grounded_status == "GROUNDED").count()
-    grounding_rate = round((grounded_count / total_quotations * 100.0), 1) if total_quotations > 0 else 100.0
+    grounding_rate = round((grounded_count / total_quotations * 100.0), 1) if total_quotations > 0 else 0.0
+
+    # Real average end-to-end pipeline latency: mean over RFQs of the summed
+    # agent-run execution time for that RFQ (ms → sec).
+    per_rfq_ms: dict[str, int] = {}
+    for run in db.query(AgentRun).all():
+        per_rfq_ms[run.rfq_id] = per_rfq_ms.get(run.rfq_id, 0) + (run.execution_time_ms or 0)
+    avg_processing_sec = round(sum(per_rfq_ms.values()) / len(per_rfq_ms) / 1000.0, 2) if per_rfq_ms else 0.0
 
     return {
         "total_rfqs": total_rfqs,
@@ -16,8 +23,8 @@ def get_dashboard_summary(db: Session):
         "pending_approvals": pending_approvals,
         "clarification_cases": clarification_cases,
         "grounded_output_percentage": grounding_rate,
-        "average_processing_time_sec": 1.25,
-        "estimated_cost_usd": 0.0045
+        "average_processing_time_sec": avg_processing_sec,
+        "estimated_cost_usd": 0.0
     }
 
 def get_activity_feed(db: Session, limit: int = 10):

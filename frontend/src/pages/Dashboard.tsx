@@ -6,36 +6,50 @@ import { RecentRFQs } from '../components/dashboard/RecentRFQs';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { useRFQ } from '../hooks/useRFQ';
 import api from '../api/client';
-import { FileText, Receipt, CheckCircle, ShieldAlert, Zap, DollarSign } from 'lucide-react';
+import { FileText, Receipt, CheckCircle, ShieldAlert, Zap, Clock } from 'lucide-react';
+
+interface DashboardSummary {
+  total_rfqs: number;
+  quotations_generated: number;
+  pending_approvals: number;
+  clarification_cases: number;
+  grounded_output_percentage: number;
+  average_processing_time_sec: number;
+  estimated_cost_usd: number;
+}
 
 export const Dashboard: React.FC = () => {
   const { rfqs } = useRFQ();
-  const [summary, setSummary] = useState({
-    total_rfqs: 2,
-    quotations_generated: 2,
-    pending_approvals: 1,
-    clarification_cases: 1,
-    grounded_output_percentage: 100.0,
-    average_processing_time_sec: 1.25,
-    estimated_cost_usd: 0.0045,
-  });
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get('/dashboard/summary')
-      .then(res => setSummary(res.data))
-      .catch(() => {});
+    setLoading(true);
+    api.get<DashboardSummary>('/dashboard/summary')
+      .then(res => { setSummary(res.data); setError(null); })
+      .catch(() => setError('Failed to load dashboard metrics.'))
+      .finally(() => setLoading(false));
   }, []);
+
+  const fmt = (v: number | undefined) => (v === undefined ? '—' : v);
 
   return (
     <PageContainer title="Platform Overview & Agent Workflow">
+      {error && (
+        <div className="card animate-fade-in" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', borderLeft: '3px solid #ef4444', color: '#ef4444', fontSize: '0.85rem' }}>
+          {error}
+        </div>
+      )}
+
       {/* Primary Overview / Key Information */}
       <div className="grid-metrics animate-fade-in animate-delay-1">
-        <MetricCard title="RFQs Processed" value={summary.total_rfqs} subtext="100% Ingestion Success" icon={FileText} />
-        <MetricCard title="Quotations Generated" value={summary.quotations_generated} subtext="Grounded Output" icon={Receipt} />
-        <MetricCard title="Pending Approvals" value={summary.pending_approvals} subtext="Human Governance" icon={CheckCircle} />
-        <MetricCard title="Clarification Cases" value={summary.clarification_cases} subtext="Hallucination Shield" icon={ShieldAlert} />
-        <MetricCard title="Grounded Output %" value={`${summary.grounded_output_percentage}%`} subtext="Grounding Score" icon={Zap} />
-        <MetricCard title="Avg Latency" value={`${summary.average_processing_time_sec}s`} subtext="5-Agent Pipeline" icon={DollarSign} />
+        <MetricCard title="RFQs Processed" value={loading ? '…' : fmt(summary?.total_rfqs)} subtext="Total Ingested" icon={FileText} />
+        <MetricCard title="Quotations Generated" value={loading ? '…' : fmt(summary?.quotations_generated)} subtext="Grounded Output" icon={Receipt} />
+        <MetricCard title="Pending Approvals" value={loading ? '…' : fmt(summary?.pending_approvals)} subtext="Human Governance" icon={CheckCircle} />
+        <MetricCard title="Clarification Cases" value={loading ? '…' : fmt(summary?.clarification_cases)} subtext="Hallucination Shield" icon={ShieldAlert} />
+        <MetricCard title="Grounded Output %" value={loading ? '…' : `${fmt(summary?.grounded_output_percentage)}%`} subtext="Grounding Score" icon={Zap} />
+        <MetricCard title="Avg Latency" value={loading ? '…' : `${fmt(summary?.average_processing_time_sec)}s`} subtext="5-Agent Pipeline" icon={Clock} />
       </div>
 
       {/* Main Operational Content & Pipeline */}
