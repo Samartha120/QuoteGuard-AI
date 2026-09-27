@@ -12,6 +12,7 @@ import { ContactUs } from './pages/ContactUs';
 import { ProfileSettings } from './pages/ProfileSettings';
 import { Preferences } from './pages/Preferences';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
 import { RequireAuth } from './components/layout/RequireAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/rfq-processing" element={<RequireAuth><RFQProcessing /></RequireAuth>} />
             <Route path="/rfqs/:id" element={<RequireAuth><RFQDetail /></RequireAuth>} />
