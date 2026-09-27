@@ -1,16 +1,28 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { useKnowledge } from '../hooks/useKnowledge';
-import { Search, Bookmark, BookmarkCheck, FileText, ChevronRight, Filter, Plus, Calendar, Hash } from 'lucide-react';
-import { KnowledgeDocument } from '../types/knowledge';
+import { Search, Bookmark, BookmarkCheck, FileText, ChevronRight, Filter, Plus, Calendar, Hash, Trash2 } from 'lucide-react';
+import { KnowledgeDocument, DocumentChunk } from '../types/knowledge';
 import { KnowledgeUpload } from '../components/knowledge/KnowledgeUpload';
+import { knowledgeApi } from '../api/knowledgeApi';
 
 export const KnowledgeBase: React.FC = () => {
-  const { documents, loading, uploadDocument } = useKnowledge();
+  const { documents, loading, uploadDocument, deleteDocument } = useKnowledge();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeDocument | null>(null);
+  const [chunks, setChunks] = useState<DocumentChunk[] | null>(null);
+  const [chunksLoading, setChunksLoading] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+
+  useEffect(() => {
+    if (!selectedDoc) { setChunks(null); return; }
+    setChunksLoading(true);
+    knowledgeApi.getDocumentChunks(selectedDoc.id)
+      .then(setChunks)
+      .catch(() => setChunks([]))
+      .finally(() => setChunksLoading(false));
+  }, [selectedDoc]);
   
   // Feature: Saved Knowledge / Bookmarks
   const [savedDocs, setSavedDocs] = useState<string[]>(() => {
@@ -212,11 +224,23 @@ export const KnowledgeBase: React.FC = () => {
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{selectedDoc.filename}</h2>
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button 
+                <button
                   onClick={(e) => toggleBookmark(selectedDoc.id, e)}
                   className="btn btn-secondary"
                 >
                   {savedDocs.includes(selectedDoc.id) ? <><BookmarkCheck size={16} /> Saved</> : <><Bookmark size={16} /> Save</>}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                  onClick={async () => {
+                    if (window.confirm(`Delete "${selectedDoc.filename}" and remove its vectors from the index?`)) {
+                      await deleteDocument(selectedDoc.id);
+                      setSelectedDoc(null);
+                    }
+                  }}
+                >
+                  <Trash2 size={16} /> Delete
                 </button>
                 <button className="btn btn-secondary" onClick={() => setSelectedDoc(null)}>Close</button>
               </div>
@@ -234,16 +258,34 @@ export const KnowledgeBase: React.FC = () => {
               </div>
               
               <div>
-                <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-main)' }}>Extracted Content Preview</h4>
-                <div style={{ 
-                  background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', 
-                  border: '1px solid var(--border-subtle)', fontSize: '0.9rem', lineHeight: '1.6',
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'system-ui, -apple-system, sans-serif'
-                }}>
-                  <p>This is a simulated preview of the document contents extracted during vectorization. In production, this area will display the parsed chunks and full-text context available to the RAG agents.</p>
-                  <p>The document <strong>{selectedDoc.filename}</strong> has been successfully broken down into <strong>{selectedDoc.chunks_count}</strong> distinct knowledge blocks. It is currently being used to inform Agentic Evaluation and Quotation Processing pipelines.</p>
-                </div>
+                <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-main)' }}>
+                  Indexed Chunks {chunks && `(${chunks.length})`}
+                </h4>
+                {chunksLoading ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading indexed content…</div>
+                ) : chunks && chunks.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {chunks.map(chunk => (
+                      <div key={chunk.id} style={{
+                        background: 'var(--bg-surface)', padding: '1rem 1.25rem', borderRadius: 'var(--radius-lg)',
+                        border: '1px solid var(--border-subtle)', fontSize: '0.85rem', lineHeight: '1.6',
+                        color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono", monospace'
+                      }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Chunk #{chunk.chunk_index}
+                        </div>
+                        {chunk.content}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{
+                    background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--border-subtle)', fontSize: '0.9rem', color: 'var(--text-muted)'
+                  }}>
+                    No indexed chunks are stored for this document.
+                  </div>
+                )}
               </div>
             </div>
           </div>

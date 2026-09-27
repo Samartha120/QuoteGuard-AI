@@ -1,9 +1,14 @@
 import api from './client';
-import { KnowledgeDocument, DocumentUploadResponse } from '../types/knowledge';
+import { KnowledgeDocument, DocumentUploadResponse, DocumentChunk } from '../types/knowledge';
 
 export const knowledgeApi = {
   listDocuments: async (): Promise<KnowledgeDocument[]> => {
     const res = await api.get<KnowledgeDocument[]>('/knowledge/documents');
+    return res.data;
+  },
+
+  getDocumentChunks: async (id: string): Promise<DocumentChunk[]> => {
+    const res = await api.get<DocumentChunk[]>(`/knowledge/documents/${id}/chunks`);
     return res.data;
   },
 

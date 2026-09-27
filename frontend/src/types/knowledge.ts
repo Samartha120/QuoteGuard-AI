@@ -10,6 +10,13 @@ export interface KnowledgeDocument {
   created_at: string;
 }
 
+export interface DocumentChunk {
+  id: string;
+  chunk_index: number;
+  content: string;
+  metadata_json?: Record<string, any> | null;
+}
+
 export interface DocumentUploadResponse {
   document_id: string;
   filename: string;
