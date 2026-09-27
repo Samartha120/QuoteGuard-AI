@@ -32,6 +32,20 @@ class Settings(BaseSettings):
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
+    @property
+    def DATA_DIR(self) -> str:
+        """Absolute path to the repo-root /data directory, resolved from this file's
+        location so it works regardless of the process working directory."""
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data"))
+
+    @property
+    def RFQ_SAMPLES_DIR(self) -> str:
+        return os.path.join(self.DATA_DIR, "rfqs")
+
+    @property
+    def EVAL_DATASET_PATH(self) -> str:
+        return os.path.join(self.DATA_DIR, "evaluation", "test_dataset.json")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

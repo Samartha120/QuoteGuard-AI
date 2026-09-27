@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { EvaluationDashboard } from '../components/evaluation/EvaluationDashboard';
 import { evaluationApi } from '../api/evaluationApi';
-import { EvaluationMetrics } from '../types/evaluation';
+import { EvaluationMetrics, EvaluationAnalytics, AnalyticsFilters } from '../types/evaluation';
+
+const RFQ_STATUSES = ['', 'DRAFT', 'PROCESSING', 'GROUNDED', 'CLARIFICATION_REQUIRED', 'COMPLETED'];
 
 export const Evaluation: React.FC = () => {
-  const [metrics, setMetrics] = useState<EvaluationMetrics>({
-    id: 'eval_01',
-    run_timestamp: new Date().toISOString(),
-    grounding_rate: 96.5,
-    hallucination_rate: 0.0,
-    abstention_accuracy: 100.0,
-    requirement_extraction_accuracy: 98.2,
-    retrieval_precision: 94.0,
-    avg_latency_ms: 1250,
-    estimated_api_cost: 0.0035,
-  });
+  const [metrics, setMetrics] = useState<EvaluationMetrics | null>(null);
+  const [analytics, setAnalytics] = useState<EvaluationAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [filters, setFilters] = useState<AnalyticsFilters>({});
+
+  const loadAnalytics = useCallback((f: AnalyticsFilters) => {
+    evaluationApi.getAnalytics(f).then(setAnalytics).catch(() => setAnalytics(null));
+  }, []);
 
   useEffect(() => {
-    evaluationApi.getSummary()
-      .then(setMetrics)
-      .catch(() => {});
+    Promise.all([
+      evaluationApi.getSummary().then(setMetrics).catch(() => {}),
+      evaluationApi.getAnalytics({}).then(setAnalytics).catch(() => {}),
+    ]).finally(() => setInitializing(false));
   }, []);
 
   const handleRunBenchmark = async () => {
@@ -29,6 +29,7 @@ export const Evaluation: React.FC = () => {
     try {
       const result = await evaluationApi.runBenchmark();
       setMetrics(result);
+      loadAnalytics(filters);
     } catch (e) {
       console.error(e);
     } finally {
@@ -36,9 +37,62 @@ export const Evaluation: React.FC = () => {
     }
   };
 
+  const updateFilter = (key: keyof AnalyticsFilters, value: string) => {
+    const next = { ...filters, [key]: value || undefined };
+    setFilters(next);
+    loadAnalytics(next);
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+    loadAnalytics({});
+  };
+
+  const hasActiveFilters = Object.values(filters).some(Boolean);
+
   return (
     <PageContainer title="Quantitative AI Evaluation & Responsible AI">
-      <EvaluationDashboard metrics={metrics} onRunBenchmark={handleRunBenchmark} loading={loading} />
+      {/* Filters bar */}
+      <div className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label className="form-label">From</label>
+          <input type="date" className="form-input" value={filters.start_date || ''} onChange={e => updateFilter('start_date', e.target.value)} />
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label className="form-label">To</label>
+          <input type="date" className="form-input" value={filters.end_date || ''} onChange={e => updateFilter('end_date', e.target.value)} />
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label className="form-label">RFQ Status</label>
+          <select className="form-select" value={filters.status || ''} onChange={e => updateFilter('status', e.target.value)}>
+            {RFQ_STATUSES.map(s => <option key={s} value={s}>{s || 'All statuses'}</option>)}
+          </select>
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label className="form-label">Customer</label>
+          <input className="form-input" placeholder="Search customer" value={filters.customer || ''} onChange={e => updateFilter('customer', e.target.value)} />
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label className="form-label">Agent</label>
+          <input className="form-input" placeholder="Search agent" value={filters.agent || ''} onChange={e => updateFilter('agent', e.target.value)} />
+        </div>
+        {hasActiveFilters && (
+          <button className="btn btn-secondary" onClick={clearFilters}>Clear filters</button>
+        )}
+      </div>
+
+      {initializing || !metrics ? (
+        <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+          Loading evaluation metrics...
+        </div>
+      ) : (
+        <EvaluationDashboard
+          metrics={metrics}
+          analytics={analytics}
+          onRunBenchmark={handleRunBenchmark}
+          loading={loading}
+        />
+      )}
     </PageContainer>
   );
 };
