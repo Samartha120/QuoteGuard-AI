@@ -1,25 +1,31 @@
 import React, { useState } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { useAuth } from '../contexts/AuthContext';
+import { authApi } from '../api/authApi';
 import { Save, User, Mail, Shield, Key } from 'lucide-react';
 
 export const ProfileSettings: React.FC = () => {
   const { user, updateUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  
+  const [error, setError] = useState<string | null>(null);
+
   const [name, setName] = useState(user?.name || '');
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    // Persist API save via context & localStorage
-    setTimeout(() => {
-      updateUser({ name });
-      setIsSaving(false);
+    setError(null);
+    try {
+      const updated = await authApi.updateProfile(name.trim());
+      updateUser({ name: updated.name });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    }, 800);
+    } catch (err) {
+      setError('Could not save your profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!user) return null;
@@ -91,6 +97,7 @@ export const ProfileSettings: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', alignItems: 'center' }}>
+            {error && <span style={{ color: 'var(--accent-red, #ef4444)', fontSize: '0.85rem' }}>{error}</span>}
             {success && <span style={{ color: 'var(--accent-green)', fontSize: '0.85rem' }}>Profile saved successfully!</span>}
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
               {isSaving ? 'Saving...' : <><Save size={16} /> Save Changes</>}

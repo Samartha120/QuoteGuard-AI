@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "sqlite:///./app/db/quoteguard.db"
+
+    # Auth / JWT
+    JWT_SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION_quoteguard_dev_secret"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24h
+    DEFAULT_ADMIN_PASSWORD: str = "quoteguard123"
     
     # Vector DB
     CHROMA_PERSIST_DIRECTORY: str = "./data/chroma_db"

@@ -96,7 +96,7 @@ export const RFQProcessing: React.FC = () => {
                   setActiveQuotation(updated);
                 }}
                 onDownloadPDF={() => {
-                  window.open(quotationApi.downloadPDFUrl(activeQuotation.id), '_blank');
+                  quotationApi.downloadPDF(activeQuotation.id);
                 }}
               />
             </div>

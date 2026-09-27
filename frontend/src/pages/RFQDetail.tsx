@@ -71,7 +71,7 @@ export const RFQDetail: React.FC = () => {
               setQuotation(updated);
             }}
             onDownloadPDF={() => {
-              window.open(quotationApi.downloadPDFUrl(quotation.id), '_blank');
+              quotationApi.downloadPDF(quotation.id);
             }}
           />
         )}
