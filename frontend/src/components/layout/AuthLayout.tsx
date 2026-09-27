@@ -36,18 +36,44 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
           <ul className="auth-feature-list">
             <li className="auth-feature" style={{ animationDelay: '0.15s' }}>
-              <span className="auth-feature-icon"><ShieldCheck size={16} /></span>
-              Every line item traced to an approved source
+              <span className="auth-feature-icon"><ShieldCheck size={18} /></span>
+              <span className="auth-feature-text">
+                <span className="auth-feature-title">Traceable line items</span>
+                <span className="auth-feature-desc">Every price and spec traced back to an approved source.</span>
+              </span>
             </li>
             <li className="auth-feature" style={{ animationDelay: '0.28s' }}>
-              <span className="auth-feature-icon"><FileSearch size={16} /></span>
-              Retrieval + validation across your catalog & pricing
+              <span className="auth-feature-icon"><FileSearch size={18} /></span>
+              <span className="auth-feature-text">
+                <span className="auth-feature-title">Grounded retrieval</span>
+                <span className="auth-feature-desc">Validation across your catalog &amp; pricing — no guesswork.</span>
+              </span>
             </li>
             <li className="auth-feature" style={{ animationDelay: '0.41s' }}>
-              <span className="auth-feature-icon"><Sparkles size={16} /></span>
-              Human-in-the-loop approvals, notifications & audit trail
+              <span className="auth-feature-icon"><Sparkles size={18} /></span>
+              <span className="auth-feature-text">
+                <span className="auth-feature-title">Human-in-the-loop</span>
+                <span className="auth-feature-desc">Approvals, notifications &amp; a full audit trail built in.</span>
+              </span>
             </li>
           </ul>
+
+          <div className="auth-trust" style={{ animationDelay: '0.55s' }}>
+            <div className="auth-trust-item">
+              <span className="auth-trust-value">0</span>
+              <span className="auth-trust-label">hallucinated quotes</span>
+            </div>
+            <div className="auth-trust-divider" />
+            <div className="auth-trust-item">
+              <span className="auth-trust-value">100%</span>
+              <span className="auth-trust-label">source-cited</span>
+            </div>
+            <div className="auth-trust-divider" />
+            <div className="auth-trust-item">
+              <span className="auth-trust-value">&lt;2s</span>
+              <span className="auth-trust-label">avg RFQ pass</span>
+            </div>
+          </div>
         </div>
         <div className="auth-aside-footer">© {new Date().getFullYear()} AXION AI · QuoteGuard</div>
       </div>
