@@ -60,7 +60,7 @@ export const Quotations: React.FC = () => {
                         <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }} onClick={() => navigate(`/quotations/${q.id}`)}>
                           Inspect
                         </button>
-                        <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }} onClick={() => window.open(quotationApi.downloadPDFUrl(q.id), '_blank')}>
+                        <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }} onClick={() => quotationApi.downloadPDF(q.id)}>
                           <Download size={12} /> PDF
                         </button>
                       </div>

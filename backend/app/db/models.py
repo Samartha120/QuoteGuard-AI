@@ -29,6 +29,8 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     role = Column(String, default="sales_manager") # sales_manager, admin
+    hashed_password = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
     
     company = relationship("Company", back_populates="users")
 

@@ -11,6 +11,8 @@ import { Organization } from './pages/Organization';
 import { ContactUs } from './pages/ContactUs';
 import { ProfileSettings } from './pages/ProfileSettings';
 import { Preferences } from './pages/Preferences';
+import { Login } from './pages/Login';
+import { RequireAuth } from './components/layout/RequireAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -20,17 +22,18 @@ export const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/rfq-processing" element={<RFQProcessing />} />
-            <Route path="/rfqs/:id" element={<RFQDetail />} />
-            <Route path="/knowledge-base" element={<KnowledgeBase />} />
-            <Route path="/quotations" element={<Quotations />} />
-            <Route path="/quotations/:id" element={<QuotationDetail />} />
-            <Route path="/evaluation" element={<Evaluation />} />
-            <Route path="/organization" element={<Organization />} />
-            <Route path="/contact" element={<ContactUs />} />
-            <Route path="/settings/profile" element={<ProfileSettings />} />
-            <Route path="/settings/preferences" element={<Preferences />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/rfq-processing" element={<RequireAuth><RFQProcessing /></RequireAuth>} />
+            <Route path="/rfqs/:id" element={<RequireAuth><RFQDetail /></RequireAuth>} />
+            <Route path="/knowledge-base" element={<RequireAuth><KnowledgeBase /></RequireAuth>} />
+            <Route path="/quotations" element={<RequireAuth><Quotations /></RequireAuth>} />
+            <Route path="/quotations/:id" element={<RequireAuth><QuotationDetail /></RequireAuth>} />
+            <Route path="/evaluation" element={<RequireAuth><Evaluation /></RequireAuth>} />
+            <Route path="/organization" element={<RequireAuth><Organization /></RequireAuth>} />
+            <Route path="/contact" element={<RequireAuth><ContactUs /></RequireAuth>} />
+            <Route path="/settings/profile" element={<RequireAuth><ProfileSettings /></RequireAuth>} />
+            <Route path="/settings/preferences" element={<RequireAuth><Preferences /></RequireAuth>} />
           </Routes>
         </Router>
       </AuthProvider>
