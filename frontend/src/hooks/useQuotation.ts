@@ -48,9 +48,23 @@ export function useQuotation() {
     }
   };
 
+  const requestChanges = async (id: string, notes: string) => {
+    setLoading(true);
+    try {
+      const updated = await quotationApi.requestChanges(id, notes);
+      setQuotations(prev => prev.map(q => q.id === id ? updated : q));
+      return updated;
+    } catch (err: any) {
+      setError(err.message || 'Request changes failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchQuotations();
   }, [fetchQuotations]);
 
-  return { quotations, loading, error, fetchQuotations, approveQuotation, rejectQuotation };
+  return { quotations, loading, error, fetchQuotations, approveQuotation, rejectQuotation, requestChanges };
 }

@@ -8,17 +8,19 @@ interface QuotationPreviewProps {
   quotation: Quotation;
   onApprove: (notes?: string) => void;
   onReject: (notes?: string) => void;
+  onRequestChanges?: (notes: string) => void;
   onDownloadPDF: () => void;
 }
 
-export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, onApprove, onReject, onDownloadPDF }) => {
+export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, onApprove, onReject, onRequestChanges, onDownloadPDF }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <ApprovalPanel 
+      <ApprovalPanel
         status={quotation.status}
         quotationId={quotation.id}
         onApprove={onApprove}
         onReject={onReject}
+        onRequestChanges={onRequestChanges}
         onDownloadPDF={onDownloadPDF}
       />
 

@@ -43,6 +43,10 @@ export const QuotationDetail: React.FC = () => {
           const updated = await quotationApi.rejectQuotation(quotation.id, notes);
           setQuotation(updated);
         }}
+        onRequestChanges={async (notes) => {
+          const updated = await quotationApi.requestChanges(quotation.id, notes);
+          setQuotation(updated);
+        }}
         onDownloadPDF={() => {
           window.open(quotationApi.downloadPDFUrl(quotation.id), '_blank');
         }}

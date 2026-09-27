@@ -8,6 +8,9 @@ def get_all_quotations(db: Session):
 def get_quotation_by_id(db: Session, quotation_id: str):
     return db.query(Quotation).filter(Quotation.id == quotation_id).first()
 
+def get_quotations_by_rfq(db: Session, rfq_id: str):
+    return db.query(Quotation).filter(Quotation.rfq_id == rfq_id).order_by(Quotation.created_at.desc()).all()
+
 def approve_quotation(db: Session, quotation_id: str, notes: str = "Approved by Sales Manager"):
     quot = get_quotation_by_id(db, quotation_id)
     if not quot:

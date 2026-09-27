@@ -12,6 +12,11 @@ export const quotationApi = {
     return res.data;
   },
 
+  getQuotationsByRFQ: async (rfqId: string): Promise<Quotation[]> => {
+    const res = await api.get<Quotation[]>(`/quotations/by-rfq/${rfqId}`);
+    return res.data;
+  },
+
   approveQuotation: async (id: string, notes?: string): Promise<Quotation> => {
     const res = await api.post<Quotation>(`/quotations/${id}/approve`, { notes });
     return res.data;

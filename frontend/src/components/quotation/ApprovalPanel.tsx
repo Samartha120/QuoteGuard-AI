@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Download, ShieldCheck, UserCheck } from 'lucide-react';
+import { CheckCircle2, XCircle, Download, ShieldCheck, UserCheck, MessageSquareWarning } from 'lucide-react';
 
 interface ApprovalPanelProps {
   status: string;
   quotationId: string;
   onApprove: (notes?: string) => void;
   onReject: (notes?: string) => void;
+  onRequestChanges?: (notes: string) => void;
   onDownloadPDF: () => void;
 }
 
-export const ApprovalPanel: React.FC<ApprovalPanelProps> = ({ status, quotationId, onApprove, onReject, onDownloadPDF }) => {
+export const ApprovalPanel: React.FC<ApprovalPanelProps> = ({ status, quotationId, onApprove, onReject, onRequestChanges, onDownloadPDF }) => {
   const [notes, setNotes] = useState('');
 
   return (
@@ -78,7 +79,23 @@ export const ApprovalPanel: React.FC<ApprovalPanelProps> = ({ status, quotationI
             <XCircle size={16} /> Reject Draft
           </button>
         )}
-        
+
+        {onRequestChanges && status !== 'CLARIFICATION_REQUIRED' && status !== 'APPROVED' && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => onRequestChanges(notes || 'Clarification required')}
+            style={{
+              background: 'transparent',
+              color: 'var(--accent-amber)',
+              borderColor: 'rgba(245, 166, 35, 0.3)',
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(245, 166, 35, 0.05)'; e.currentTarget.style.borderColor = 'var(--accent-amber)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(245, 166, 35, 0.3)'; }}
+          >
+            <MessageSquareWarning size={16} /> Request Changes
+          </button>
+        )}
+
         <div style={{ flex: 1 }} />
         
         <button 

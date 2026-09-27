@@ -5,10 +5,11 @@ interface RFQUploadProps {
   onLoadSample1: () => void;
   onLoadSample2: () => void;
   onProcess: (rawText: string, customerName: string) => void;
+  onUploadFile: (file: File, customerName: string) => void;
   loading: boolean;
 }
 
-export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSample2, onProcess, loading }) => {
+export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSample2, onProcess, onUploadFile, loading }) => {
   const [customerName, setCustomerName] = useState('Apex Engineering Works Ltd.');
   const [rawText, setRawText] = useState(
     `REQUEST FOR QUOTATION (RFQ)\nCustomer Name: Apex Engineering Works Ltd.\nPlease supply:\n1. Industrial Valve IV-200 (SS304) - 20 units\n2. Pressure Relief Valve PV-100 (SS304) - 15 units\nTerms: Net 30 Days credit`
@@ -83,17 +84,28 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, padding: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
-              <input 
-                type="file" 
-                id="rfq-file-upload" 
-                style={{ display: 'none' }} 
-                accept=".pdf,.docx,.msg"
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>CLIENT ID</span>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--accent-green)', fontWeight: 600, fontSize: '0.9rem', outline: 'none', width: '100%' }}
+                />
+              </div>
+              <div style={{ flex: 1, padding: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <input
+                type="file"
+                id="rfq-file-upload"
+                style={{ display: 'none' }}
+                accept=".pdf,.docx,.msg,.txt,.md,.csv"
+                disabled={loading}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    setRawText(`REQUEST FOR QUOTATION (RFQ)\nSource: Extracted from ${file.name}\nCustomer Name: Unknown\n\n1. Industrial Valve IV-200 (SS304) - 20 units\n2. Pressure Relief Valve PV-100 (SS304) - 15 units\nTerms: Net 30 Days credit`);
-                    setInputMode('text');
+                    onUploadFile(file, customerName);
+                    e.target.value = '';
                   }
                 }}
               />
@@ -112,10 +124,11 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
                 </div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Upload RFQ Document</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 1.5rem 0', textAlign: 'center' }}>
-                  Supports PDF, DOCX, MSG up to 15MB.
+                  Supports PDF, DOCX, MSG, TXT, MD, CSV up to 15MB. Text is extracted server-side and run through the pipeline.
                 </p>
-                <div className="btn btn-secondary" style={{ fontSize: '0.8rem', pointerEvents: 'none' }}>Select File</div>
+                <div className="btn btn-secondary" style={{ fontSize: '0.8rem', pointerEvents: 'none' }}>{loading ? 'Processing…' : 'Select File'}</div>
               </label>
+              </div>
             </div>
           )}
         </div>
