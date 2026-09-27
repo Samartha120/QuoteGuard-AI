@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
-from app.schemas.knowledge import KnowledgeDocumentResponse, DocumentUploadResponse
-from app.services.knowledge_service import get_all_documents, upload_knowledge_document, delete_document
+from app.schemas.knowledge import KnowledgeDocumentResponse, DocumentUploadResponse, DocumentChunkSchema
+from app.services.knowledge_service import get_all_documents, upload_knowledge_document, delete_document, get_document_chunks
 from app.utils.file_utils import save_uploaded_file
 
 router = APIRouter()
@@ -11,6 +11,10 @@ router = APIRouter()
 @router.get("/documents", response_model=List[KnowledgeDocumentResponse])
 def list_documents(db: Session = Depends(get_db)):
     return get_all_documents(db=db)
+
+@router.get("/documents/{document_id}/chunks", response_model=List[DocumentChunkSchema])
+def list_document_chunks(document_id: str, db: Session = Depends(get_db)):
+    return get_document_chunks(db=db, document_id=document_id)
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 def upload_document(
