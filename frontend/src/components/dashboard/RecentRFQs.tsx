@@ -58,7 +58,7 @@ export const RecentRFQs: React.FC<RecentRFQsProps> = ({ rfqs }) => {
                     )}
                   </td>
                   <td>
-                    <button className="btn btn-secondary" onClick={() => navigate(`/rfq-processing`)}>
+                    <button className="btn btn-secondary" onClick={() => navigate(`/rfqs/${rfq.id}`)}>
                       Inspect <ArrowUpRight size={14} />
                     </button>
                   </td>

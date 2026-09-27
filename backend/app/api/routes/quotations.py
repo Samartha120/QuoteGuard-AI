@@ -7,6 +7,7 @@ from app.schemas.quotation import QuotationResponse, ApprovalActionRequest
 from app.services.quotation_service import (
     get_all_quotations,
     get_quotation_by_id,
+    get_quotations_by_rfq,
     approve_quotation,
     reject_quotation,
     request_changes_quotation,
@@ -18,6 +19,10 @@ router = APIRouter()
 @router.get("", response_model=List[QuotationResponse])
 def list_quotations(db: Session = Depends(get_db)):
     return get_all_quotations(db=db)
+
+@router.get("/by-rfq/{rfq_id}", response_model=List[QuotationResponse])
+def list_quotations_for_rfq(rfq_id: str, db: Session = Depends(get_db)):
+    return get_quotations_by_rfq(db=db, rfq_id=rfq_id)
 
 @router.get("/{quotation_id}", response_model=QuotationResponse)
 def get_quotation(quotation_id: str, db: Session = Depends(get_db)):

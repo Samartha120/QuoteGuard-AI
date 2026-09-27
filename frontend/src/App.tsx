@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { RFQProcessing } from './pages/RFQProcessing';
+import { RFQDetail } from './pages/RFQDetail';
 import { KnowledgeBase } from './pages/KnowledgeBase';
 import { Quotations } from './pages/Quotations';
 import { QuotationDetail } from './pages/QuotationDetail';
@@ -21,6 +22,7 @@ export const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/rfq-processing" element={<RFQProcessing />} />
+            <Route path="/rfqs/:id" element={<RFQDetail />} />
             <Route path="/knowledge-base" element={<KnowledgeBase />} />
             <Route path="/quotations" element={<Quotations />} />
             <Route path="/quotations/:id" element={<QuotationDetail />} />
