@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { GoogleButton } from '../components/layout/GoogleButton';
-import { LogIn, AlertCircle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, AlertCircle, Mail, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 
-export const Login: React.FC = () => {
-  const { login } = useAuth();
+export const Signup: React.FC = () => {
+  const { register } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: string })?.from || '/';
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -20,13 +19,18 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      await register(name.trim(), email.trim(), password);
+      navigate('/', { replace: true });
     } catch (err: any) {
       const status = err?.response?.status;
-      if (status === 401) setError('Invalid email or password.');
+      if (status === 409) setError('An account with this email already exists.');
+      else if (status === 422) setError(err?.response?.data?.detail || 'Please check your details.');
       else if (err?.response) setError('Something went wrong. Please try again.');
       else setError('Cannot reach the server. Is the backend running on port 8000?');
     } finally {
@@ -37,15 +41,31 @@ export const Login: React.FC = () => {
   return (
     <AuthLayout>
       <div className="auth-header">
-        <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to your QuoteGuard workspace.</p>
+        <h1 className="auth-title">Create your account</h1>
+        <p className="auth-subtitle">Start generating source-grounded quotes in minutes.</p>
       </div>
 
       <GoogleButton onError={setError} />
 
-      <div className="auth-divider"><span>or continue with email</span></div>
+      <div className="auth-divider"><span>or sign up with email</span></div>
 
       <form onSubmit={handleSubmit} className="auth-form">
+        <div className="form-group">
+          <label className="form-label">Full Name</label>
+          <div className="auth-input-wrap">
+            <UserIcon size={16} className="auth-input-icon" />
+            <input
+              type="text"
+              className="form-input auth-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Jane Doe"
+              autoComplete="name"
+              required
+            />
+          </div>
+        </div>
+
         <div className="form-group">
           <label className="form-label">Email Address</label>
           <div className="auth-input-wrap">
@@ -56,7 +76,7 @@ export const Login: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
-              autoComplete="username"
+              autoComplete="email"
               required
             />
           </div>
@@ -71,8 +91,8 @@ export const Login: React.FC = () => {
               className="form-input auth-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
+              placeholder="At least 6 characters"
+              autoComplete="new-password"
               required
             />
             <button type="button" className="auth-input-toggle" onClick={() => setShowPw(!showPw)} tabIndex={-1}>
@@ -88,18 +108,13 @@ export const Login: React.FC = () => {
         )}
 
         <button type="submit" className="btn btn-primary auth-submit" disabled={submitting}>
-          {submitting ? 'Signing in…' : <><LogIn size={16} /> Sign In</>}
+          {submitting ? 'Creating account…' : <><UserPlus size={16} /> Create Account</>}
         </button>
       </form>
 
       <p className="auth-alt">
-        Don't have an account? <Link to="/signup" className="auth-link">Create one</Link>
+        Already have an account? <Link to="/login" className="auth-link">Sign in</Link>
       </p>
-
-      <div className="auth-demo">
-        <span className="auth-demo-label">Demo credentials</span>
-        sales.manager@vertexind.com · quoteguard123
-      </div>
     </AuthLayout>
   );
 };

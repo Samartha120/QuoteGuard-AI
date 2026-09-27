@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24h
     DEFAULT_ADMIN_PASSWORD: str = "quoteguard123"
+
+    # Google Sign-In (optional). Set GOOGLE_CLIENT_ID to enable the
+    # "Continue with Google" button; verification uses Google's public keys.
+    GOOGLE_CLIENT_ID: str = ""
     
     # Vector DB
     CHROMA_PERSIST_DIRECTORY: str = "./data/chroma_db"
