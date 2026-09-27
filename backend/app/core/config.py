@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     def EVAL_DATASET_PATH(self) -> str:
         return os.path.join(self.DATA_DIR, "evaluation", "test_dataset.json")
 
+    @property
+    def PRICING_CSV_PATH(self) -> str:
+        return os.path.join(self.DATA_DIR, "pricing", "approved_pricing_2026.csv")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

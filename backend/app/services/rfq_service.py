@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import RFQ, RFQRequirement, Quotation, QuotationLineItem, AgentRun, Company
+from app.db.models import RFQ, RFQRequirement, Quotation, QuotationLineItem, AgentRun, SourceCitation, Company
 from app.schemas.rfq import RFQCreate
 from app.agents.state import AgentState
 from app.agents.workflow import workflow_orchestrator
@@ -84,7 +84,7 @@ def process_rfq_workflow(db: Session, rfq_id: str) -> RFQ:
     db.commit()
     db.refresh(quotation)
 
-    # Save Line Items
+    # Save Line Items (+ normalized SourceCitation rows for the audit trail)
     for line in draft.get("line_items", []):
         db_line = QuotationLineItem(
             quotation_id=quotation.id,
@@ -99,6 +99,17 @@ def process_rfq_workflow(db: Session, rfq_id: str) -> RFQ:
             citations=line.get("citations", [])
         )
         db.add(db_line)
+        db.flush()  # assign db_line.id before creating citation rows
+
+        for cit in line.get("citations", []) or []:
+            db.add(SourceCitation(
+                line_item_id=db_line.id,
+                field_name=cit.get("field_name", "unit_price"),
+                source_filename=cit.get("source_filename", ""),
+                source_chunk_id=cit.get("source_chunk_id", ""),
+                evidence_snippet=cit.get("evidence_snippet", ""),
+                retrieval_score=cit.get("retrieval_score", 0.0),
+            ))
 
     rfq.status = final_state.grounded_status
     db.commit()

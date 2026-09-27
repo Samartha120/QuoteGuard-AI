@@ -1,8 +1,14 @@
 import time
 from app.agents.state import AgentState
 from app.utils.confidence import compute_field_confidence
+from app.tools.pricing_catalog import approved_grades
 from app.core.config import settings
 from app.core.logging import logger
+
+
+def _normalize_grade(grade: str) -> str:
+    return "".join(str(grade).upper().split())
+
 
 def run_planning_agent(state: AgentState) -> AgentState:
     """Stage 3: Planning Agent - Knowledge Sufficiency & Strategy Evaluator."""
@@ -10,6 +16,7 @@ def run_planning_agent(state: AgentState) -> AgentState:
     line_items = state.extracted_requirements.get("line_items", [])
     evidence = state.retrieved_evidence
     threshold = settings.GROUNDING_THRESHOLD
+    grades = {_normalize_grade(g) for g in approved_grades()}
 
     has_unsupported = False
     confidences = {}
@@ -18,12 +25,10 @@ def run_planning_agent(state: AgentState) -> AgentState:
         p_name = item.get("product_name", "")
         p_code = item.get("product_code", "")
         material = item.get("material_grade", "")
-        
-        # Check if material spec requested is out of stock in KB (e.g. SS316 requested vs SS304 in KB)
-        is_spec_mismatch = False
-        if material and "316" in material:
-            # KB catalog only contains SS304 standard stock
-            is_spec_mismatch = True
+
+        # Spec mismatch when a requested grade is not present in the approved catalog
+        # (data-driven from approved_pricing CSV, e.g. SS316 requested vs SS304/Carbon Steel stock).
+        is_spec_mismatch = bool(material) and grades and _normalize_grade(material) not in grades
 
         score = compute_field_confidence(
             field_name="unit_price",
