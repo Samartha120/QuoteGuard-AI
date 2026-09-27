@@ -1,16 +1,25 @@
 import React from 'react';
-import { EvaluationMetrics } from '../../types/evaluation';
+import { EvaluationMetrics, EvaluationAnalytics } from '../../types/evaluation';
 import { MetricChart } from './MetricChart';
 import { DynamicEvaluationChart } from './DynamicEvaluationChart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Play, Cpu, DollarSign } from 'lucide-react';
 
 interface EvaluationDashboardProps {
   metrics: EvaluationMetrics;
+  analytics: EvaluationAnalytics | null;
   onRunBenchmark: () => void;
   loading: boolean;
 }
 
-export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metrics, onRunBenchmark, loading }) => {
+const DIST_COLORS: Record<string, string> = {
+  Grounded: 'var(--accent-green)',
+  Clarification: 'var(--accent-amber)',
+  Abstained: 'var(--accent-blue)',
+  Unverified: 'var(--accent-red)',
+};
+
+export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metrics, analytics, onRunBenchmark, loading }) => {
   return (
     <div className="animate-fade-in">
       <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -27,10 +36,11 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
         <MetricChart label="Grounding Rate (G)" value={metrics.grounding_rate} color="var(--accent-green)" />
         <MetricChart label="Abstention Accuracy (A)" value={metrics.abstention_accuracy} color="var(--accent-blue)" />
         <MetricChart label="Hallucination Rate (H)" value={metrics.hallucination_rate} color="var(--accent-amber)" />
-        <MetricChart label="Requirement Extraction Accuracy" value={metrics.requirement_extraction_accuracy} color="var(--accent-purple)" />
+        <MetricChart label="Requirement Extraction Accuracy" value={metrics.requirement_extraction_accuracy} color="var(--accent-blue-hover)" />
       </div>
 
-      <DynamicEvaluationChart currentMetrics={metrics} />
+      <DynamicEvaluationChart analytics={analytics} />
+
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
         <div className="card">
@@ -59,6 +69,44 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
           </p>
         </div>
       </div>
+
+      {analytics && (analytics.grounding_distribution.some(d => d.value > 0) || analytics.agent_success_rates.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
+          <div className="card">
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '1rem' }}>Grounding Outcome Distribution</h4>
+            <div style={{ width: '100%', height: '240px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.grounding_distribution} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} stroke="var(--border-subtle)" />
+                  <YAxis allowDecimals={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} stroke="var(--border-subtle)" width={35} />
+                  <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem' }} cursor={{ fill: 'var(--bg-surface-hover)' }} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {analytics.grounding_distribution.map(d => (
+                      <Cell key={d.label} fill={DIST_COLORS[d.label] || 'var(--accent-blue)'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="card">
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '1rem' }}>Agent Success Rate (%)</h4>
+            <div style={{ width: '100%', height: '240px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.agent_success_rates} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} stroke="var(--border-subtle)" />
+                  <YAxis type="category" dataKey="agent" width={140} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} stroke="var(--border-subtle)" />
+                  <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem' }} cursor={{ fill: 'var(--bg-surface-hover)' }} formatter={(v: any) => [`${v}%`, 'Success']} />
+                  <Bar dataKey="success_rate" fill="var(--accent-green)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
