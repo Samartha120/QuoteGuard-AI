@@ -26,3 +26,14 @@ class AgentState(BaseModel):
     
     # Execution Trace Audit Trail
     agent_traces: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # Orchestrator (supervisor) bookkeeping — see app/agents/orchestrator.py
+    # messages: every handoff between the supervisor and an agent, in order
+    #   {"step", "from", "to", "type": task|result|error, "content"}
+    # orchestrator_decisions: why the supervisor picked each next agent
+    messages: List[Dict[str, Any]] = Field(default_factory=list)
+    orchestrator_decisions: List[Dict[str, Any]] = Field(default_factory=list)
+    completed_agents: List[str] = Field(default_factory=list)
+    attempts: Dict[str, int] = Field(default_factory=dict)
+    next_agent: Optional[str] = None
+    step: int = 0
