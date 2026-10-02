@@ -6,6 +6,11 @@ which agent goes next, so the route depends on the RFQ:
 
     START -> supervisor -> <agent> -> supervisor -> <agent> -> ... -> finish | escalate
 
+After drafting, the critic reviews the draft. "approve" finishes; "revise" goes
+back to drafting or retrieval (whichever the critic names) with the critic's
+reasons as the task, up to MAX_REVISIONS times. If a revision changes nothing,
+or only a human can resolve the problem, the RFQ is escalated.
+
 How a decision is made
   1. `legal_moves()` lists the moves that make sense from the current state
      (e.g. no drafting before extraction, re-search only while the retry budget
@@ -34,6 +39,7 @@ from app.agents.retrieval_agent import run_retrieval_agent
 from app.agents.planning_agent import run_planning_agent
 from app.agents.validation_agent import run_validation_agent
 from app.agents.drafting_agent import run_drafting_agent
+from app.agents.critic_agent import run_critic_agent
 from app.tools.pricing_catalog import approved_grades
 from app.llm.client import llm_client
 from app.llm.structured_output import clean_and_parse_json
@@ -45,7 +51,7 @@ FINISH = "finish"
 ESCALATE = "escalate"
 
 # Pipeline order. Re-running an agent invalidates everything after it.
-AGENT_ORDER = ["extraction", "retrieval", "planning", "validation", "drafting"]
+AGENT_ORDER = ["extraction", "retrieval", "planning", "validation", "drafting", "critic"]
 
 DEFAULT_AGENTS: Dict[str, Callable[[AgentState], AgentState]] = {
     "extraction": run_requirement_agent,
@@ -53,6 +59,7 @@ DEFAULT_AGENTS: Dict[str, Callable[[AgentState], AgentState]] = {
     "planning": run_planning_agent,
     "validation": run_validation_agent,
     "drafting": run_drafting_agent,
+    "critic": run_critic_agent,
 }
 
 AGENT_LABELS = {
@@ -61,11 +68,13 @@ AGENT_LABELS = {
     "planning": "Planning & Strategy Agent",
     "validation": "Validation Agent",
     "drafting": "Drafting Agent",
+    "critic": "Critic Agent",
 }
 
 MAX_ATTEMPTS = 3        # runs per agent, including error retries
 MAX_RETRIEVALS = 2      # how many times the supervisor may send retrieval back out
-MAX_STEPS = 16          # supervisor decisions per RFQ, hard stop against loops
+MAX_REVISIONS = 2       # times the critic may send a draft back before a human takes over
+MAX_STEPS = 20          # supervisor decisions per RFQ, hard stop against loops
 
 Move = Tuple[str, str]  # (next node, reason)
 
@@ -100,6 +109,35 @@ def _weak_items(state: AgentState) -> Tuple[List[str], List[str]]:
         else:
             weak_evidence.append(name)
     return mismatch, weak_evidence
+
+
+def _critic_errors(state: AgentState, fix_by: Optional[str] = None, limit: int = 3) -> str:
+    """The critic's errors as one line, for task messages and escalation notes."""
+    errs = [i for i in state.critic_feedback.get("issues", [])
+            if i.get("severity") == "error" and (fix_by is None or i.get("fix_by") == fix_by)]
+    text = "; ".join(f"{i['line']}: {i['detail']}" for i in errs[:limit])
+    return text + (f" (+{len(errs) - limit} more)" if len(errs) > limit else "")
+
+
+def _after_critic(state: AgentState) -> List[Move]:
+    """Where a reviewed draft goes next."""
+    fb = state.critic_feedback
+    if fb.get("verdict") == "approve":
+        return [(FINISH, "critic approved the draft; ready for human approval")]
+
+    if fb.get("unchanged_since_last_round"):
+        return [(ESCALATE, f"revision changed nothing and the critic still finds: {_critic_errors(state)}")]
+
+    fix_by = fb.get("fix_by", [])
+    moves: List[Move] = []
+    if "retrieval" in fix_by and state.attempts.get("retrieval", 0) < MAX_RETRIEVALS:
+        moves.append(("retrieval", f"critic needs better evidence: {_critic_errors(state, 'retrieval')}"))
+    if "drafting" in fix_by and fb.get("round", 0) <= MAX_REVISIONS:
+        moves.append(("drafting", f"critic asks for a revision: {_critic_errors(state, 'drafting')}"))
+    if moves:
+        return moves + [(ESCALATE, f"hand the critic's findings to a human: {_critic_errors(state)}")]
+    why = "only a human can resolve" if fix_by == ["human"] else "revision budget used up;"
+    return [(ESCALATE, f"{why} critic finds: {_critic_errors(state)}")]
 
 
 def legal_moves(state: AgentState) -> List[Move]:
@@ -148,7 +186,10 @@ def legal_moves(state: AgentState) -> List[Move]:
         path = "clarification request" if state.abstention_required else "priced quotation"
         return run_or_escalate("drafting", f"items verified; draft the {path}")
 
-    return [(FINISH, "draft is ready for human approval")]
+    if "critic" not in done:
+        return run_or_escalate("critic", "draft written; review it before a human sees it")
+
+    return _after_critic(state)
 
 
 def _summary(state: AgentState) -> dict:
@@ -171,6 +212,9 @@ def _summary(state: AgentState) -> dict:
         "grade_not_in_catalogue": mismatch,
         "weak_evidence_items": weak,
         "abstention_required": state.abstention_required,
+        "critic": {k: state.critic_feedback.get(k) for k in ("verdict", "fix_by", "round")}
+                  if state.critic_feedback else None,
+        "critic_errors": _critic_errors(state) or None,
         "last_message": state.messages[-1]["content"] if state.messages else None,
     }
 
@@ -189,6 +233,8 @@ You may choose ONLY one of these options:
 
 Prefer re-searching only when it can plausibly find better evidence. A material grade
 the catalogue does not stock cannot be fixed by searching again.
+When the critic asks for a revision, send it to the agent that can fix the problem;
+escalate to a human when the problem needs a commercial decision no agent can make.
 
 Reply with JSON only: {{"next": "<option>", "reason": "<one sentence>"}}"""
 
@@ -223,7 +269,11 @@ def decide(state: AgentState) -> dict:
     else:
         picked = _ask_llm(state, moves)
         (nxt, reason), by = (picked, "llm") if picked else (moves[0], "policy")
-    return {"next": nxt, "reason": reason, "decided_by": by, "options": [m for m, _ in moves]}
+    # the task text is the move's own description (e.g. the critic's findings), so the
+    # receiving agent always gets the facts even when the LLM's reason is a paraphrase
+    task = dict(moves)[nxt]
+    return {"next": nxt, "reason": reason, "task": task, "decided_by": by,
+            "options": [m for m, _ in moves]}
 
 
 # --------------------------------------------------------------------------- #
@@ -249,7 +299,7 @@ def supervisor_node(state: AgentState) -> dict:
         stale = set(AGENT_ORDER[AGENT_ORDER.index(nxt):])
         s.completed_agents = [a for a in s.completed_agents if a not in stale]
         s.messages.append({"step": s.step, "from": SUPERVISOR, "to": nxt,
-                           "type": "task", "content": d["reason"]})
+                           "type": "task", "content": d["task"]})
     return _dump(s)
 
 
@@ -285,7 +335,8 @@ def make_agent_node(name: str, fn: Callable[[AgentState], AgentState]):
 def escalate_node(state: AgentState) -> dict:
     """Hand the RFQ to a human. Produces a clarification draft the existing UI understands."""
     s = state.model_copy(deep=True)
-    reason = s.orchestrator_decisions[-1]["reason"] if s.orchestrator_decisions else "unknown"
+    last = s.orchestrator_decisions[-1] if s.orchestrator_decisions else {}
+    reason = last.get("task") or last.get("reason") or "unknown"
     s.abstention_required = True
     s.grounded_status = "ABSTAINED"
     s.escalation_notes = f"ESCALATED BY ORCHESTRATOR: {reason}. A sales engineer must review this RFQ."
@@ -304,6 +355,9 @@ def escalate_node(state: AgentState) -> dict:
                 for i in _line_items(s)
             ],
         }
+    else:
+        # a priced draft the agents could not settle is not ready to approve as-is
+        s.quotation_draft["status"] = "CLARIFICATION_REQUIRED"
     s.messages.append({"step": s.step, "from": SUPERVISOR, "to": "human",
                        "type": "escalation", "content": reason})
     s.agent_traces.append({"agent_name": "Orchestrator", "status": "ESCALATED",
