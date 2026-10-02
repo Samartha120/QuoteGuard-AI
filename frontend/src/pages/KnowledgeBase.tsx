@@ -105,39 +105,41 @@ export const KnowledgeBase: React.FC = () => {
             
             <StaggerItem>
               <button 
-              onClick={() => setSelectedCategory(null)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', border: 'none',
-                background: selectedCategory === null ? 'var(--bg-surface-hover)' : 'transparent',
-                color: selectedCategory === null ? 'var(--text-main)' : 'var(--text-secondary)',
-                cursor: 'pointer', textAlign: 'left', fontWeight: selectedCategory === null ? 500 : 400,
-                transition: 'all 0.2s'
-              }}
-            >
-              All Articles
-            </button>
-            
-            {categories.map(cat => (
-              <button 
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => setSelectedCategory(null)}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', border: 'none',
-                  background: selectedCategory === cat.id ? 'var(--bg-surface-hover)' : 'transparent',
-                  color: selectedCategory === cat.id ? 'var(--text-main)' : 'var(--text-secondary)',
-                  cursor: 'pointer', textAlign: 'left', fontWeight: selectedCategory === cat.id ? 500 : 400,
+                  background: selectedCategory === null ? 'var(--bg-surface-hover)' : 'transparent',
+                  color: selectedCategory === null ? 'var(--text-main)' : 'var(--text-secondary)',
+                  cursor: 'pointer', textAlign: 'left', fontWeight: selectedCategory === null ? 500 : 400,
                   transition: 'all 0.2s'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {cat.id === 'saved' ? <Bookmark size={14} /> : <FileText size={14} />}
-                  {cat.label}
-                </div>
+                All Articles
               </button>
+            </StaggerItem>
+            
+            {categories.map(cat => (
+              <StaggerItem key={cat.id}>
+                <button 
+                  onClick={() => setSelectedCategory(cat.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', border: 'none',
+                    background: selectedCategory === cat.id ? 'var(--bg-surface-hover)' : 'transparent',
+                    color: selectedCategory === cat.id ? 'var(--text-main)' : 'var(--text-secondary)',
+                    cursor: 'pointer', textAlign: 'left', fontWeight: selectedCategory === cat.id ? 500 : 400,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {cat.id === 'saved' ? <Bookmark size={14} /> : <FileText size={14} />}
+                    {cat.label}
+                  </div>
+                </button>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
 
           {/* Main Content Area */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -207,6 +209,7 @@ export const KnowledgeBase: React.FC = () => {
               </StaggerContainer>
             )}
           </div>
+        </div>
         </div>
       </PrintReveal>
 

@@ -6,6 +6,7 @@ interface RevealProps {
   delay?: number;
   className?: string;
   width?: 'fit-content' | '100%';
+  style?: React.CSSProperties;
 }
 
 const printVariants: Variants = {
@@ -35,14 +36,14 @@ const scaleVariants: Variants = {
   }
 };
 
-export const PrintReveal: React.FC<RevealProps> = ({ children, delay = 0, width = 'fit-content', className = '' }) => {
+export const PrintReveal: React.FC<RevealProps> = ({ children, delay = 0, width = 'fit-content', className = '', style }) => {
   return (
     <motion.div 
       variants={printVariants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-10%" }}
-      style={{ width }}
+      style={{ width, ...style }}
       className={className}
       transition={{ delay }}
     >
@@ -51,14 +52,14 @@ export const PrintReveal: React.FC<RevealProps> = ({ children, delay = 0, width 
   );
 };
 
-export const FadeUpReveal: React.FC<RevealProps> = ({ children, delay = 0, width = '100%', className = '' }) => {
+export const FadeUpReveal: React.FC<RevealProps> = ({ children, delay = 0, width = '100%', className = '', style }) => {
   return (
     <motion.div 
       variants={fadeUpVariants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-5%" }}
-      style={{ width }}
+      style={{ width, ...style }}
       className={className}
       transition={{ delay }}
     >
@@ -67,14 +68,14 @@ export const FadeUpReveal: React.FC<RevealProps> = ({ children, delay = 0, width
   );
 };
 
-export const ScaleReveal: React.FC<RevealProps> = ({ children, delay = 0, width = '100%', className = '' }) => {
+export const ScaleReveal: React.FC<RevealProps> = ({ children, delay = 0, width = '100%', className = '', style }) => {
   return (
     <motion.div 
       variants={scaleVariants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-5%" }}
-      style={{ width }}
+      style={{ width, ...style }}
       className={className}
       transition={{ delay }}
     >

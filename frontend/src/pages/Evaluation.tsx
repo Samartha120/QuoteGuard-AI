@@ -55,25 +55,25 @@ export const Evaluation: React.FC = () => {
     <PageContainer title="Quantitative AI Evaluation & Responsible AI">
       {/* Filters bar */}
       <ScaleReveal delay={0.1} className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-        <div className="form-group" style={{ margin: 0 }}>
+        <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
           <label className="form-label">From</label>
           <input type="date" className="form-input" value={filters.start_date || ''} onChange={e => updateFilter('start_date', e.target.value)} />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
+        <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
           <label className="form-label">To</label>
           <input type="date" className="form-input" value={filters.end_date || ''} onChange={e => updateFilter('end_date', e.target.value)} />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
+        <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
           <label className="form-label">RFQ Status</label>
           <select className="form-select" value={filters.status || ''} onChange={e => updateFilter('status', e.target.value)}>
             {RFQ_STATUSES.map(s => <option key={s} value={s}>{s || 'All statuses'}</option>)}
           </select>
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
+        <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
           <label className="form-label">Customer</label>
           <input className="form-input" placeholder="Search customer" value={filters.customer || ''} onChange={e => updateFilter('customer', e.target.value)} />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
+        <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
           <label className="form-label">Agent</label>
           <input className="form-input" placeholder="Search agent" value={filters.agent || ''} onChange={e => updateFilter('agent', e.target.value)} />
         </div>
