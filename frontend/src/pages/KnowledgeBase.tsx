@@ -61,8 +61,6 @@ export const KnowledgeBase: React.FC = () => {
     });
   }, [documents, searchQuery, selectedCategory, savedDocs]);
 
-  }, [documents, searchQuery, selectedCategory, savedDocs]);
-
   return (
     <PageContainer title="Knowledge Center">
       <PrintReveal delay={0.1} width="100%">
