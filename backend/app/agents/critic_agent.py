@@ -20,6 +20,7 @@ Any issue with severity
 "error" makes the verdict "revise"; each issue names who should fix it
 (drafting, retrieval or a human) so the orchestrator knows where to send it.
 """
+import hashlib
 import json
 import re
 import time
@@ -343,6 +344,12 @@ def llm_review(state: AgentState, rule_issues: List[Dict[str, Any]]) -> Optional
 # Agent entry point
 # --------------------------------------------------------------------------- #
 
+def draft_digest(state: AgentState) -> str:
+    """Fingerprint of what the customer would see: the draft and its clarification questions."""
+    payload = json.dumps([state.quotation_draft, state.clarification_questions], sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
 def run_critic_agent(state: AgentState) -> AgentState:
     start = time.time()
     issues = check_draft(state)
@@ -357,6 +364,7 @@ def run_critic_agent(state: AgentState) -> AgentState:
 
     errors = [i for i in issues if i["severity"] == "error"]
     verdict = "revise" if errors else "approve"
+    digest = draft_digest(state)
     state.critic_feedback = {
         "verdict": verdict,
         "issues": issues,
@@ -364,6 +372,9 @@ def run_critic_agent(state: AgentState) -> AgentState:
         "reviewed_by": reviewed_by,
         "summary": summary,
         "round": state.critic_feedback.get("round", 0) + 1,
+        # same draft as last round -> the revision changed nothing; the supervisor escalates
+        "draft_digest": digest,
+        "unchanged_since_last_round": digest == state.critic_feedback.get("draft_digest"),
     }
 
     elapsed = int((time.time() - start) * 1000)
