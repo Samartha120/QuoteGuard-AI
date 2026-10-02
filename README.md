@@ -53,17 +53,23 @@ flowchart LR
     S -- task --> P[Planning Agent<br/>confidence + abstention]
     S -- task --> V[Validation Agent]
     S -- task --> D[Drafting Agent]
+    S -- task --> C[Critic Agent<br/>rules + LLM]
     E -- result --> S
     R -- result --> S
     P -- result --> S
     V -- result --> S
     D -- result --> S
+    C -- "approve / revise + findings" --> S
     R <--> KB[(ChromaDB knowledge base<br/>catalogue · pricing · policy)]
     D <--> CSV[(approved_pricing_2026.csv)]
     S -- escalate --> H([Human sales manager])
     S -- finish --> Q[Quotation draft + citations<br/>→ approval panel → PDF]
-    C[Critic Agent<br/>rules + LLM] -. integration in progress .-> S
 ```
+
+After drafting, the **critic** reviews the draft. *Approve* finishes the run. *Revise* goes back to the
+agent the critic names (drafting, or retrieval when evidence is missing), with the critic's findings as
+the task, at most twice. If a revision changes nothing, or only a person can resolve the problem, the
+supervisor escalates to the sales manager with the critic's findings in the escalation note.
 
 **Orchestration pattern: supervisor (orchestrator-worker).** A supervisor node, built with
 [LangGraph](https://github.com/langchain-ai/langgraph), runs between every agent. Each agent returns
@@ -97,8 +103,12 @@ Behaviour that depends on what agents produce:
 | Retrieval returns no evidence | Search again, or let planning abstain |
 | Weak evidence for a **stocked** item | One more search before validation |
 | Requested grade is **not stocked** (e.g. SS316) | No re-search — searching cannot fix it; go to validation and abstain |
+| Critic approves the draft | Finish; the draft waits for human approval |
+| Critic asks for a revision | Send it to drafting or retrieval with the findings — the LLM chooses, or escalates |
+| Revision changed nothing / budget of 2 revisions used | Escalate with the critic's findings |
+| Critic finds something only a person can decide | Escalate at once |
 | An agent raises an exception | Record the error, retry, escalate to a human after 3 attempts |
-| More than 16 decisions | Stop and escalate (loop guard) |
+| More than 20 decisions | Stop and escalate (loop guard) |
 
 Every decision is stored in `state.orchestrator_decisions` (`step`, `next`, `reason`, `decided_by`,
 `options`) and every handoff in `state.messages` (`from`, `to`, `type: task | result | error | escalation`).
@@ -115,8 +125,7 @@ Every decision is stored in `state.orchestrator_decisions` (`step`, `next`, `rea
 | Drafting | `agents/drafting_agent.py` | Prices lines from the approved CSV with citations, or writes clarification questions | No | Tej |
 | Critic | `agents/critic_agent.py` | Reviews the draft: rule checks + LLM policy review; returns approve / revise | Yes | Vedant |
 
-The **critic** (`run_critic_agent`) is implemented and tested; wiring it into the supervisor so that
-"revise" sends the draft back is in progress. It works in two layers:
+The **critic** (`run_critic_agent`) runs after every draft. It works in two layers:
 
 - **Rules** (cannot be overridden by the LLM): every RFQ item is on the draft, quantities match the RFQ,
   each unit price equals the approved price after the bulk-discount schedule, totals include 18% GST,
@@ -243,9 +252,9 @@ cd backend
 python -m pytest -q
 ```
 
-7 test modules, 35 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
+7 test modules, 41 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
 routing (`test_orchestrator.py` — retries, escalation, re-extraction, re-search rules, LLM-vs-policy
-choice) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
+choice, and the critic revision loop) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
 safeguards on LLM findings). Agent tests use fake agents or a fake LLM, so they need no API key.
 
 ## 11. Evaluation
@@ -258,9 +267,10 @@ one that must abstain) and is being extended.
 
 ## 12. Known limitations
 
-- The critic is not yet part of the supervisor's loop (in progress).
-- Retrieval, planning, validation and drafting are deterministic today; making retrieval choose its own
-  tools and queries, and drafting revise on critic feedback, is in progress.
+- Drafting does not yet act on the critic's findings, so today a revision request ends in escalation
+  (the supervisor sees the draft did not change). Making drafting revise is in progress.
+- Retrieval, planning and validation are deterministic today; making retrieval choose its own tools and
+  queries, and merging planning and validation into one Validation & Planning Agent, is in progress.
 - The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup
   above until the Docker setup is fixed.
 - The knowledge base is loaded when the server starts; scripts that skip startup see an empty store.
