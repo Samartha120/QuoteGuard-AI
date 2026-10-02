@@ -37,23 +37,29 @@ export const Dashboard: React.FC = () => {
   return (
     <PageContainer title="Platform Overview & Agent Workflow">
       {error && (
-        <div className="card animate-fade-in" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', borderLeft: '3px solid #ef4444', color: '#ef4444', fontSize: '0.85rem' }}>
+        <div
+          className="card animate-fade-in"
+          style={{ padding: '1rem 1.25rem', marginBottom: '1rem', borderLeft: '3px solid #ef4444', color: '#ef4444', fontSize: '0.85rem' }}
+        >
           {error}
         </div>
       )}
 
-      {/* Primary Overview / Key Information */}
-      <div className="grid-metrics animate-fade-in animate-delay-1">
-        <MetricCard title="RFQs Processed" value={loading ? '…' : fmt(summary?.total_rfqs)} subtext="Total Ingested" icon={FileText} />
-        <MetricCard title="Quotations Generated" value={loading ? '…' : fmt(summary?.quotations_generated)} subtext="Grounded Output" icon={Receipt} />
-        <MetricCard title="Pending Approvals" value={loading ? '…' : fmt(summary?.pending_approvals)} subtext="Human Governance" icon={CheckCircle} />
-        <MetricCard title="Clarification Cases" value={loading ? '…' : fmt(summary?.clarification_cases)} subtext="Hallucination Shield" icon={ShieldAlert} />
-        <MetricCard title="Grounded Output %" value={loading ? '…' : `${fmt(summary?.grounded_output_percentage)}%`} subtext="Grounding Score" icon={Zap} />
-        <MetricCard title="Avg Latency" value={loading ? '…' : `${fmt(summary?.average_processing_time_sec)}s`} subtext="5-Agent Pipeline" icon={Clock} />
+      {/* Primary metric cards — each gets a stagger index for sequential entrance */}
+      <div className="grid-metrics">
+        <MetricCard index={0} title="RFQs Processed"       value={loading ? '…' : fmt(summary?.total_rfqs)}                      subtext="Total Ingested"      icon={FileText}    />
+        <MetricCard index={1} title="Quotations Generated" value={loading ? '…' : fmt(summary?.quotations_generated)}             subtext="Grounded Output"     icon={Receipt}     />
+        <MetricCard index={2} title="Pending Approvals"    value={loading ? '…' : fmt(summary?.pending_approvals)}                subtext="Human Governance"    icon={CheckCircle} />
+        <MetricCard index={3} title="Clarification Cases"  value={loading ? '…' : fmt(summary?.clarification_cases)}              subtext="Hallucination Shield" icon={ShieldAlert} />
+        <MetricCard index={4} title="Grounded Output %"    value={loading ? '…' : `${fmt(summary?.grounded_output_percentage)}%`} subtext="Grounding Score"     icon={Zap}         />
+        <MetricCard index={5} title="Avg Latency"          value={loading ? '…' : `${fmt(summary?.average_processing_time_sec)}s`} subtext="5-Agent Pipeline"  icon={Clock}       />
       </div>
 
-      {/* Main Operational Content & Pipeline */}
-      <div className="dashboard-content animate-fade-in animate-delay-2" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
+      {/* Main operational content */}
+      <div
+        className="dashboard-content animate-fade-in animate-delay-2"
+        style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <RecentRFQs rfqs={rfqs} />
         </div>

@@ -81,31 +81,154 @@ h6 {
   color: var(--text-main);
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+/* ================================================================
+   PREMIUM MOTION DESIGN SYSTEM — QuoteGuard AI
+   Philosophy: intentional, cinematic, purposeful.
+   GPU-friendly transforms only. Respect prefers-reduced-motion.
+   ================================================================ */
 
-  to {
-    opacity: 1;
-  }
+/* ── Core Keyframes ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Precise reveal — content rises from a crisp clip-path */
+@keyframes revealUp {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(18px);
+    clip-path: inset(100% 0 0 0);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
+    clip-path: inset(0% 0 0 0);
   }
 }
 
+/* Subtle scale-up for cards */
+@keyframes scaleReveal {
+  from { opacity: 0; transform: scale(0.97) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Metric value count-in feel */
+@keyframes metricReveal {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* Horizontal scan line (data/precision) */
+@keyframes scanLine {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Pipeline vertical line drawing */
+@keyframes pipelineDraw {
+  from { transform: scaleY(0); transform-origin: top center; }
+  to   { transform: scaleY(1); transform-origin: top center; }
+}
+
+/* Pipeline node pulse */
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(0, 230, 118, 0.15); }
+}
+
+/* Status dot breathe */
+@keyframes statusBreathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Topbar shimmer on load */
+@keyframes topbarReveal {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sidebar content stagger */
+@keyframes sidebarItemReveal {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Auth glow (existing, enhanced) */
+@keyframes authGlow {
+  from { transform: translate3d(-4%, -3%, 0) scale(1);    opacity: 0.7; }
+  to   { transform: translate3d(5%,  4%, 0) scale(1.18); opacity: 1; }
+}
+
+@keyframes authRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes authCardIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Utility classes (mount animations) ── */
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── Scroll-reveal base states ── */
+/*  Elements begin hidden; .is-revealed triggers the enter animation.  */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-up.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.96) translateY(10px);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-scale.is-revealed {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.reveal-fade {
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-fade.is-revealed {
+  opacity: 1;
+}
+
+/* Staggered children — each child gets --stagger-i via JS */
+.stagger-child {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--stagger-i, 0) * 55ms);
+}
+.stagger-child.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* App Layout */
@@ -748,29 +871,225 @@ h6 {
   }
 }
 
-/* Page Animations */
+/* ── Page Animations ── */
 .animate-slide-up {
-  animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-delay-1 { animation-delay: 0.06s; }
+.animate-delay-2 { animation-delay: 0.12s; }
+.animate-delay-3 { animation-delay: 0.18s; }
+.animate-delay-4 { animation-delay: 0.24s; }
+
+/* ── Premium Topbar ── */
+.topbar {
+  animation: topbarReveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Premium Button Micro-interactions ── */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0); /* GPU layer */
+  will-change: transform, box-shadow;
+  transition:
+    background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color     0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    color            0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    transform        0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow       0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.btn:hover { transform: translateY(-1px); }
+.btn:hover::after { opacity: 1; }
+.btn:active { transform: translateY(0) scale(0.98); }
+
+.btn-primary:hover {
+  box-shadow: 0 4px 14px rgba(237, 237, 237, 0.15);
+}
+
+.btn-secondary:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Premium Metric Cards ── */
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform        0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow       0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color     0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+  transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border-color: var(--border-strong);
+}
+
+.metric-card:hover::before { left: 140%; }
+
+/* ── Table Row micro-interactions ── */
+.table tr {
+  transition: background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.table td {
+  transition: color 0.18s ease;
+}
+
+/* ── Card hover depth ── */
+.card {
+  transition:
+    box-shadow   0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform    0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateZ(0);
+}
+
+/* ── Navigation micro-interactions ── */
+.nav-link {
+  position: relative;
+  transition:
+    background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    color            0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    transform        0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-link:hover {
+  transform: translateX(2px);
+}
+
+.nav-link.active {
+  animation: sidebarItemReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Premium pipeline line ── */
+.workflow-vertical > div:first-child::before {
+  /* The vertical connecting line */
+  animation: pipelineDraw 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+/* Pipeline step nodes */
+.step-circle {
+  transition:
+    background-color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color     0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow       0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    transform        0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.step-circle.active {
+  animation: nodePulse 2.8s ease-in-out infinite;
+}
+
+/* System status breathing dot */
+.status-dot {
+  animation: statusBreathe 2.5s ease-in-out infinite;
+}
+
+/* ── Auth feature card hover ── */
+.auth-feature {
+  transition:
+    transform    0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background   0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow   0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-feature:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.25);
+}
+
+/* ── Form input focus animation ── */
+.form-input, .form-textarea, .form-select {
+  transition:
+    border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow   0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Footer link hover underline ── */
+.footer-link {
+  transition:
+    color        0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Badge micro-animation on appear ── */
+.badge {
+  animation: fadeIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ================================================================
+   PREFERS-REDUCED-MOTION
+   When user has motion sensitivity, cut all animations to instant.
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
-  to {
+  .reveal-up,
+  .reveal-scale,
+  .reveal-fade,
+  .stagger-child {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
+    transition: none;
   }
-}
 
-.animate-delay-1 {
-  animation-delay: 0.05s;
-}
+  .status-dot {
+    animation: none;
+  }
 
-.animate-delay-2 {
-  animation-delay: 0.1s;
+  .step-circle.active {
+    animation: none;
+  }
+
+  .metric-card::before {
+    display: none;
+  }
 }
 
 /* Responsive adjustments */
@@ -1081,8 +1400,8 @@ h6 {
 }
 
 @keyframes authGlow {
-  from { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.8; }
-  to   { transform: translate3d(5%, 4%, 0) scale(1.15); opacity: 1; }
+  from { transform: translate3d(-4%, -3%, 0) scale(1);    opacity: 0.7; }
+  to   { transform: translate3d(5%,  4%, 0) scale(1.18); opacity: 1; }
 }
 
 .auth-aside-content { position: relative; z-index: 1; }
@@ -1126,13 +1445,14 @@ h6 {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 8px 24px -16px rgba(0, 0, 0, 0.6);
-  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   animation: authRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .auth-feature:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.01);
   border-color: rgba(16, 185, 129, 0.4);
   background: linear-gradient(180deg, rgba(16, 185, 129, 0.10), rgba(255, 255, 255, 0.03));
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.2);
 }
 .auth-feature-icon {
   display: inline-flex;
@@ -1315,4 +1635,62 @@ h6 {
   .auth-shell { grid-template-columns: 1fr; }
   .auth-aside { display: none; }
   .auth-main { padding: 1.5rem; }
+}
+
+/* ================================================================
+   SUPPLEMENTAL PREMIUM MOTION DETAILS
+   ================================================================ */
+
+/* Page inner content — cinematic fade up on route mount */
+.page-content-inner {
+  animation: scaleReveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Table rows appear with subtle left-to-right opacity sweep */
+.table tbody tr {
+  transition:
+    background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity          0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Sidebar links slide in with micro delay on mount */
+.nav-list li:nth-child(1) .nav-link { animation: sidebarItemReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both; }
+.nav-list li:nth-child(2) .nav-link { animation: sidebarItemReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.10s both; }
+.nav-list li:nth-child(3) .nav-link { animation: sidebarItemReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+.nav-list li:nth-child(4) .nav-link { animation: sidebarItemReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.20s both; }
+.nav-list li:nth-child(5) .nav-link { animation: sidebarItemReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
+
+/* Sidebar brand reveal */
+.sidebar-brand {
+  animation: sidebarItemReveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Premium Google button */
+.btn-google {
+  transition:
+    background    0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color  0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow    0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-google:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Tooltip / badge entrance */
+.notif-count {
+  animation: scaleReveal 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Auth glow enhanced */
+.auth-aside-glow {
+  animation: authGlow 9s ease-in-out infinite alternate;
+}
+
+/* Mobile: scale back expensive effects */
+@media (max-width: 768px) {
+  .metric-card:hover { transform: none; }
+  .btn:hover { transform: none; }
+  .auth-feature:hover { transform: translateY(-1px); }
+  .metric-card::before { display: none; }
 }
