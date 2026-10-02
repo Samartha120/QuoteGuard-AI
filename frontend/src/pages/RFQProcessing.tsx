@@ -11,7 +11,7 @@ import { useRFQ } from '../hooks/useRFQ';
 import { useQuotation } from '../hooks/useQuotation';
 import { quotationApi } from '../api/quotationApi';
 import { rfqApi } from '../api/rfqApi';
-import { useScrollReveal } from '../hooks/useScrollReveal';
+import { PrintReveal, ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine } from '../components/motion';
 
 export const RFQProcessing: React.FC = () => {
   const { createRFQ, processRFQ, loading } = useRFQ();
@@ -19,11 +19,6 @@ export const RFQProcessing: React.FC = () => {
 
   const [currentRFQ, setCurrentRFQ] = useState<any | null>(null);
   const [activeQuotation, setActiveQuotation] = useState<any | null>(null);
-  
-  const uploadRef = useScrollReveal<HTMLDivElement>();
-  const resultsRef = useScrollReveal<HTMLDivElement>();
-  const clarificationRef = useScrollReveal<HTMLDivElement>();
-  const previewRef = useScrollReveal<HTMLDivElement>();
 
   const sample1 = `REQUEST FOR QUOTATION (RFQ)\nCustomer Name: Apex Engineering Works Ltd.\n1. Industrial Valve IV-200 (SS304) - 20 units\n2. Pressure Relief Valve PV-100 (SS304) - 15 units\nTerms: Net 30 Days credit`;
   const sample2 = `REQUEST FOR QUOTATION (RFQ)\nCustomer Name: Zenith Chemical Processing Ltd.\n1. Industrial Valve IV-200 (Material Spec: SS316 Heavy Duty High-Corrosion Variant) - 50 units\nTerms: 90 Days post-installation credit terms, 3 days doorstep delivery`;
@@ -55,7 +50,7 @@ export const RFQProcessing: React.FC = () => {
 
   return (
     <PageContainer title="Source-Grounded RFQ Agentic Pipeline">
-      <div className="reveal-up" ref={uploadRef}>
+      <PrintReveal delay={0.2} width="100%">
         <RFQUpload
           onLoadSample1={() => handleProcess(sample1, 'Apex Engineering Works Ltd.')}
           onLoadSample2={() => handleProcess(sample2, 'Zenith Chemical Processing Ltd.')}
@@ -63,30 +58,37 @@ export const RFQProcessing: React.FC = () => {
           onUploadFile={(file, cust) => handleUploadFile(file, cust)}
           loading={loading}
         />
-      </div>
+      </PrintReveal>
 
       {currentRFQ && (
-        <div className="reveal-up" ref={resultsRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
+        <StaggerContainer delayOrder={1} className="results-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '2rem' }}>
+          <AnimatedLine horizontal delay={0.5} />
           {currentRFQ.agent_runs && (
-            <AgentProgress agentRuns={currentRFQ.agent_runs} />
+            <StaggerItem>
+              <AgentProgress agentRuns={currentRFQ.agent_runs} />
+            </StaggerItem>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <RFQInput rawText={currentRFQ.raw_text} customerName={currentRFQ.customer_name} />
-            <RequirementTable requirements={currentRFQ.requirements || []} />
+            <StaggerItem>
+              <RFQInput rawText={currentRFQ.raw_text} customerName={currentRFQ.customer_name} />
+            </StaggerItem>
+            <StaggerItem>
+              <RequirementTable requirements={currentRFQ.requirements || []} />
+            </StaggerItem>
           </div>
 
           {activeQuotation && activeQuotation.status === 'CLARIFICATION_REQUIRED' && (
-            <div className="reveal-scale" ref={clarificationRef}>
+            <ScaleReveal delay={0.2}>
               <ClarificationPanel 
                 questions={activeQuotation.clarification_questions || []} 
                 notes={activeQuotation.escalation_notes}
               />
-            </div>
+            </ScaleReveal>
           )}
 
           {activeQuotation && (
-            <div className="reveal-scale" ref={previewRef}>
+            <ScaleReveal delay={0.3}>
               <QuotationPreview 
                 quotation={activeQuotation}
                 onApprove={async (notes) => {
@@ -105,9 +107,9 @@ export const RFQProcessing: React.FC = () => {
                   quotationApi.downloadPDF(activeQuotation.id);
                 }}
               />
-            </div>
+            </ScaleReveal>
           )}
-        </div>
+        </StaggerContainer>
       )}
     </PageContainer>
   );

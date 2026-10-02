@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Database, Receipt, BarChart3, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { QuoteShieldLogo } from './QuoteShieldLogo';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -31,10 +32,20 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+    <motion.aside 
+      className="sidebar" 
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
+      initial={{ x: -250, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
-        <div className="sidebar-brand" style={{ cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseOver={e => e.currentTarget.style.opacity = '0.8'} onMouseOut={e => e.currentTarget.style.opacity = '1'}>
+        <motion.div 
+          className="sidebar-brand" 
+          style={{ cursor: 'pointer', transition: 'opacity 0.2s' }} 
+          whileHover={{ opacity: 0.8 }}
+        >
           <div className="brand-icon" style={{ background: 'transparent', padding: 0 }}>
             <QuoteShieldLogo size={32} />
           </div>
@@ -46,7 +57,7 @@ export const Sidebar: React.FC = () => {
             </div>
             <div className="brand-team">Team AXION AI</div>
           </div>
-        </div>
+        </motion.div>
       </Link>
 
       <nav style={{ flex: 1, overflowY: 'auto' }}>
@@ -169,6 +180,6 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
       </div>
-    </aside>
+    </motion.aside>
   );
 };

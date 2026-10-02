@@ -2,6 +2,7 @@ import React from 'react';
 import { RFQ } from '../../types/rfq';
 import { ArrowUpRight, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine } from '../motion';
 
 interface RecentRFQsProps {
   rfqs: RFQ[];
@@ -11,14 +12,15 @@ export const RecentRFQs: React.FC<RecentRFQsProps> = ({ rfqs }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="card animate-fade-in" style={{ flex: 2 }}>
+    <ScaleReveal delay={0.2} className="card" width="100%">
       <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 className="section-title" style={{ fontSize: '1.1rem' }}>Recent Operational RFQs</h3>
         <button className="btn btn-secondary" onClick={() => navigate('/rfq-processing')}>
           View All RFQs
         </button>
       </div>
-      <div className="table-container">
+      <AnimatedLine horizontal delay={0.3} />
+      <div className="table-container" style={{ marginTop: '1rem' }}>
         <table className="table">
           <thead>
             <tr>
@@ -68,6 +70,6 @@ export const RecentRFQs: React.FC<RecentRFQsProps> = ({ rfqs }) => {
           </tbody>
         </table>
       </div>
-    </div>
+    </ScaleReveal>
   );
 };

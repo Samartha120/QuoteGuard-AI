@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { FileText, Database, ShieldAlert, FileCode, CheckCircle2 } from 'lucide-react';
+import { ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine, RegistrationMark } from '../motion';
 
 export const WorkflowOverview: React.FC = () => {
   const steps = [
@@ -11,103 +12,47 @@ export const WorkflowOverview: React.FC = () => {
     { title: 'Human Approval',       icon: CheckCircle2, desc: 'ReportLab PDF Output' },
   ];
 
-  const lineRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Animate the pipeline line draw-on effect when card enters view
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // Stagger-reveal each pipeline step
-    const stepEls = container.querySelectorAll('.pipeline-step');
-    stepEls.forEach((el, i) => {
-      const htmlEl = el as HTMLElement;
-      htmlEl.style.opacity = '0';
-      htmlEl.style.transform = 'translateX(-6px)';
-      htmlEl.style.transition = `opacity 0.38s cubic-bezier(0.22,1,0.36,1), transform 0.38s cubic-bezier(0.22,1,0.36,1)`;
-      htmlEl.style.transitionDelay = `${i * 70}ms`;
-    });
-
-    if (prefersReducedMotion) {
-      stepEls.forEach((el) => {
-        (el as HTMLElement).style.opacity = '1';
-        (el as HTMLElement).style.transform = 'none';
-      });
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            stepEls.forEach((el) => {
-              (el as HTMLElement).style.opacity = '1';
-              (el as HTMLElement).style.transform = 'translateX(0)';
-            });
-            observer.disconnect();
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div className="card animate-fade-in animate-delay-2" style={{ marginBottom: '1.5rem', flex: 1 }}>
-      <div className="section-header" style={{ marginBottom: '1rem' }}>
+    <ScaleReveal delay={0.3} className="card" width="100%">
+      <div className="section-header" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 className="section-title" style={{ fontSize: '1rem' }}>Active Pipeline</h3>
+        <RegistrationMark delay={0.6} />
       </div>
-      <div
-        ref={containerRef}
+      <StaggerContainer
         className="workflow-vertical"
         style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative' }}
       >
         {/* Vertical connecting line — animates draw-on via CSS */}
-        <div
-          ref={lineRef}
-          style={{
-            position: 'absolute',
-            left: '11px',
-            top: '10px',
-            bottom: '10px',
-            width: '1px',
-            backgroundColor: 'var(--border-subtle)',
-            zIndex: 0,
-            transformOrigin: 'top center',
-            animation: 'pipelineDraw 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both',
-          }}
-        />
+        <div style={{ position: 'absolute', left: '11px', top: '10px', bottom: '10px', width: '1px', zIndex: 0 }}>
+          <AnimatedLine horizontal={false} delay={0.5} />
+        </div>
         {steps.map((step, idx) => {
           const Icon = step.icon;
           return (
-            <div
+            <StaggerItem
               key={idx}
               className="pipeline-step"
-              style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', zIndex: 1 }}
             >
-              <div
-                className="step-circle active"
-                style={{ width: '24px', height: '24px', flexShrink: 0, backgroundColor: 'var(--bg-primary)' }}
-              >
-                <Icon size={12} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', lineHeight: 1.2 }}>
-                  {step.title}
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', zIndex: 1, position: 'relative' }}>
+                <div
+                  className="step-circle active"
+                  style={{ width: '24px', height: '24px', flexShrink: 0, backgroundColor: 'var(--bg-primary)' }}
+                >
+                  <Icon size={12} />
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  {step.desc}
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', lineHeight: 1.2 }}>
+                    {step.title}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    {step.desc}
+                  </div>
                 </div>
               </div>
-            </div>
+            </StaggerItem>
           );
         })}
-      </div>
-    </div>
+      </StaggerContainer>
+    </ScaleReveal>
   );
 };
