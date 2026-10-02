@@ -11,6 +11,7 @@ import { useRFQ } from '../hooks/useRFQ';
 import { useQuotation } from '../hooks/useQuotation';
 import { quotationApi } from '../api/quotationApi';
 import { rfqApi } from '../api/rfqApi';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export const RFQProcessing: React.FC = () => {
   const { createRFQ, processRFQ, loading } = useRFQ();
@@ -18,6 +19,11 @@ export const RFQProcessing: React.FC = () => {
 
   const [currentRFQ, setCurrentRFQ] = useState<any | null>(null);
   const [activeQuotation, setActiveQuotation] = useState<any | null>(null);
+  
+  const uploadRef = useScrollReveal<HTMLDivElement>();
+  const resultsRef = useScrollReveal<HTMLDivElement>();
+  const clarificationRef = useScrollReveal<HTMLDivElement>();
+  const previewRef = useScrollReveal<HTMLDivElement>();
 
   const sample1 = `REQUEST FOR QUOTATION (RFQ)\nCustomer Name: Apex Engineering Works Ltd.\n1. Industrial Valve IV-200 (SS304) - 20 units\n2. Pressure Relief Valve PV-100 (SS304) - 15 units\nTerms: Net 30 Days credit`;
   const sample2 = `REQUEST FOR QUOTATION (RFQ)\nCustomer Name: Zenith Chemical Processing Ltd.\n1. Industrial Valve IV-200 (Material Spec: SS316 Heavy Duty High-Corrosion Variant) - 50 units\nTerms: 90 Days post-installation credit terms, 3 days doorstep delivery`;
@@ -49,7 +55,7 @@ export const RFQProcessing: React.FC = () => {
 
   return (
     <PageContainer title="Source-Grounded RFQ Agentic Pipeline">
-      <div className="animate-fade-in animate-delay-1">
+      <div className="reveal-up" ref={uploadRef}>
         <RFQUpload
           onLoadSample1={() => handleProcess(sample1, 'Apex Engineering Works Ltd.')}
           onLoadSample2={() => handleProcess(sample2, 'Zenith Chemical Processing Ltd.')}
@@ -60,7 +66,7 @@ export const RFQProcessing: React.FC = () => {
       </div>
 
       {currentRFQ && (
-        <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="reveal-up" ref={resultsRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
           {currentRFQ.agent_runs && (
             <AgentProgress agentRuns={currentRFQ.agent_runs} />
           )}
@@ -71,7 +77,7 @@ export const RFQProcessing: React.FC = () => {
           </div>
 
           {activeQuotation && activeQuotation.status === 'CLARIFICATION_REQUIRED' && (
-            <div className="animate-slide-up animate-delay-1">
+            <div className="reveal-scale" ref={clarificationRef}>
               <ClarificationPanel 
                 questions={activeQuotation.clarification_questions || []} 
                 notes={activeQuotation.escalation_notes}
@@ -80,7 +86,7 @@ export const RFQProcessing: React.FC = () => {
           )}
 
           {activeQuotation && (
-            <div className="animate-slide-up animate-delay-2">
+            <div className="reveal-scale" ref={previewRef}>
               <QuotationPreview 
                 quotation={activeQuotation}
                 onApprove={async (notes) => {

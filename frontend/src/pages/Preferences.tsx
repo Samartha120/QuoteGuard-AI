@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sliders, Bell, LayoutTemplate, Save } from 'lucide-react';
+import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
 
 export const Preferences: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -12,6 +13,9 @@ export const Preferences: React.FC = () => {
   const [density, setDensity] = useState(() => localStorage.getItem('axion_pref_density') || 'comfortable');
   const [animations, setAnimations] = useState(() => localStorage.getItem('axion_pref_anim') || 'standard');
   const [timeRange, setTimeRange] = useState(() => localStorage.getItem('axion_pref_time') || '30d');
+
+  const containerRef = useScrollReveal<HTMLDivElement>();
+  const cardsRef = useStaggerReveal<HTMLDivElement>(':scope > .card');
 
   const handleSave = () => {
     setIsSaving(true);
@@ -29,13 +33,13 @@ export const Preferences: React.FC = () => {
 
   return (
     <PageContainer title="Application Preferences">
-      <div className="animate-fade-in animate-delay-1" style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div className="reveal-fade is-revealed" ref={containerRef} style={{ maxWidth: '800px', margin: '0 auto' }}>
         <div className="section-header">
           <h2 className="section-title">Application Experience</h2>
           <div className="section-desc">Customize how QuoteGuard AI looks and behaves for your workflow.</div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div ref={cardsRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           <div className="card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

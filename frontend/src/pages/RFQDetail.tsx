@@ -11,12 +11,18 @@ import { quotationApi } from '../api/quotationApi';
 import { RFQ } from '../types/rfq';
 import { Quotation } from '../types/quotation';
 import { ArrowLeft } from 'lucide-react';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export const RFQDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [rfq, setRfq] = useState<RFQ | null>(null);
   const [quotation, setQuotation] = useState<Quotation | null>(null);
+
+  const backBtnRef = useScrollReveal<HTMLButtonElement>();
+  const resultsRef = useScrollReveal<HTMLDivElement>();
+  const clarificationRef = useScrollReveal<HTMLDivElement>();
+  const previewRef = useScrollReveal<HTMLDivElement>();
 
   useEffect(() => {
     if (!id) return;
@@ -36,11 +42,11 @@ export const RFQDetail: React.FC = () => {
 
   return (
     <PageContainer title={`RFQ — ${rfq.customer_name}`}>
-      <button className="btn btn-secondary" style={{ marginBottom: '1rem' }} onClick={() => navigate('/')}>
+      <button ref={backBtnRef} className="btn btn-secondary reveal-up" style={{ marginBottom: '1rem' }} onClick={() => navigate('/')}>
         <ArrowLeft size={16} /> Back to Dashboard
       </button>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div ref={resultsRef} className="reveal-scale" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {rfq.agent_runs && <AgentProgress agentRuns={rfq.agent_runs} />}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -49,31 +55,35 @@ export const RFQDetail: React.FC = () => {
         </div>
 
         {quotation && quotation.status === 'CLARIFICATION_REQUIRED' && (
-          <ClarificationPanel
-            questions={quotation.clarification_questions || []}
-            notes={quotation.escalation_notes}
-          />
+          <div ref={clarificationRef} className="reveal-up">
+            <ClarificationPanel
+              questions={quotation.clarification_questions || []}
+              notes={quotation.escalation_notes}
+            />
+          </div>
         )}
 
         {quotation && (
-          <QuotationPreview
-            quotation={quotation}
-            onApprove={async (notes) => {
-              const updated = await quotationApi.approveQuotation(quotation.id, notes);
-              setQuotation(updated);
-            }}
-            onReject={async (notes) => {
-              const updated = await quotationApi.rejectQuotation(quotation.id, notes);
-              setQuotation(updated);
-            }}
-            onRequestChanges={async (notes) => {
-              const updated = await quotationApi.requestChanges(quotation.id, notes);
-              setQuotation(updated);
-            }}
-            onDownloadPDF={() => {
-              quotationApi.downloadPDF(quotation.id);
-            }}
-          />
+          <div ref={previewRef} className="reveal-up">
+            <QuotationPreview
+              quotation={quotation}
+              onApprove={async (notes) => {
+                const updated = await quotationApi.approveQuotation(quotation.id, notes);
+                setQuotation(updated);
+              }}
+              onReject={async (notes) => {
+                const updated = await quotationApi.rejectQuotation(quotation.id, notes);
+                setQuotation(updated);
+              }}
+              onRequestChanges={async (notes) => {
+                const updated = await quotationApi.requestChanges(quotation.id, notes);
+                setQuotation(updated);
+              }}
+              onDownloadPDF={() => {
+                quotationApi.downloadPDF(quotation.id);
+              }}
+            />
+          </div>
         )}
       </div>
     </PageContainer>

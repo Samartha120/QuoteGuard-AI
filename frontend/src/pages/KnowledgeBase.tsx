@@ -5,6 +5,7 @@ import { Search, Bookmark, BookmarkCheck, FileText, ChevronRight, Filter, Plus, 
 import { KnowledgeDocument, DocumentChunk } from '../types/knowledge';
 import { KnowledgeUpload } from '../components/knowledge/KnowledgeUpload';
 import { knowledgeApi } from '../api/knowledgeApi';
+import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
 
 export const KnowledgeBase: React.FC = () => {
   const { documents, loading, uploadDocument, deleteDocument } = useKnowledge();
@@ -59,9 +60,13 @@ export const KnowledgeBase: React.FC = () => {
     });
   }, [documents, searchQuery, selectedCategory, savedDocs]);
 
+  const headerRef = useScrollReveal<HTMLDivElement>();
+  const categoriesRef = useStaggerReveal<HTMLDivElement>(':scope > button');
+  const articlesRef = useStaggerReveal<HTMLDivElement>(':scope > div.card');
+
   return (
     <PageContainer title="Knowledge Center">
-      <div className="animate-fade-in animate-delay-1" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div className="reveal-fade" ref={headerRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
         {/* Header & Search */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
@@ -95,7 +100,7 @@ export const KnowledgeBase: React.FC = () => {
 
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
           {/* Categories Sidebar */}
-          <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+          <div ref={categoriesRef} style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
             <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Categories</h3>
             
             <button 
@@ -156,7 +161,7 @@ export const KnowledgeBase: React.FC = () => {
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Try adjusting your search terms or category filter.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div ref={articlesRef} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {filteredDocs.map(doc => (
                   <div 
                     key={doc.id} 
