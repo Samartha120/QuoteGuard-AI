@@ -5,11 +5,15 @@ import { QuotationPreview } from '../components/quotation/QuotationPreview';
 import { quotationApi } from '../api/quotationApi';
 import { Quotation } from '../types/quotation';
 import { ArrowLeft } from 'lucide-react';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export const QuotationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [quotation, setQuotation] = useState<Quotation | null>(null);
+
+  const backBtnRef = useScrollReveal<HTMLButtonElement>();
+  const previewRef = useScrollReveal<HTMLDivElement>();
 
   useEffect(() => {
     if (id) {
@@ -29,12 +33,13 @@ export const QuotationDetail: React.FC = () => {
 
   return (
     <PageContainer title={`Quotation ${quotation.quotation_number}`}>
-      <button className="btn btn-secondary" style={{ marginBottom: '1rem' }} onClick={() => navigate('/quotations')}>
+      <button ref={backBtnRef} className="btn btn-secondary reveal-up" style={{ marginBottom: '1rem' }} onClick={() => navigate('/quotations')}>
         <ArrowLeft size={16} /> Back to Quotations Register
       </button>
 
-      <QuotationPreview 
-        quotation={quotation}
+      <div ref={previewRef} className="reveal-scale">
+        <QuotationPreview 
+          quotation={quotation}
         onApprove={async (notes) => {
           const updated = await quotationApi.approveQuotation(quotation.id, notes);
           setQuotation(updated);
@@ -51,6 +56,7 @@ export const QuotationDetail: React.FC = () => {
           quotationApi.downloadPDF(quotation.id);
         }}
       />
+      </div>
     </PageContainer>
   );
 };

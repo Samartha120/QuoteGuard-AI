@@ -3,6 +3,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api/authApi';
 import { Save, User, Mail, Shield, Key } from 'lucide-react';
+import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
 
 export const ProfileSettings: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -28,17 +29,20 @@ export const ProfileSettings: React.FC = () => {
     }
   };
 
+  const containerRef = useScrollReveal<HTMLDivElement>();
+  const formRef = useStaggerReveal<HTMLFormElement>(':scope > .card, :scope > div');
+
   if (!user) return null;
 
   return (
     <PageContainer title="Profile Settings">
-      <div className="animate-fade-in animate-delay-1" style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div className="reveal-fade is-revealed" ref={containerRef} style={{ maxWidth: '800px', margin: '0 auto' }}>
         <div className="section-header">
           <h2 className="section-title">Account Identity</h2>
           <div className="section-desc">Manage your personal profile, account information, and security settings.</div>
         </div>
 
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <form onSubmit={handleSave} ref={formRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           <div className="card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -4,14 +4,18 @@ import { useQuotation } from '../hooks/useQuotation';
 import { quotationApi } from '../api/quotationApi';
 import { Receipt, Download, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
 
 export const Quotations: React.FC = () => {
   const { quotations, loading } = useQuotation();
   const navigate = useNavigate();
+  
+  const cardRef = useScrollReveal<HTMLDivElement>();
+  const tableRef = useStaggerReveal<HTMLTableSectionElement>(':scope > tr');
 
   return (
     <PageContainer title="Quotations Management">
-      <div className="card animate-fade-in">
+      <div className="card reveal-up" ref={cardRef}>
         <div className="section-header">
           <h3 className="section-title">Quotation Register</h3>
         </div>
@@ -30,7 +34,7 @@ export const Quotations: React.FC = () => {
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody ref={tableRef}>
               {quotations.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>

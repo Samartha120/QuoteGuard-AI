@@ -1,18 +1,23 @@
 import React from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Building2, Users, Database, Shield, CreditCard } from 'lucide-react';
+import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
 
 export const Organization: React.FC = () => {
+  const containerRef = useScrollReveal<HTMLDivElement>();
+  const leftColRef = useStaggerReveal<HTMLDivElement>();
+  const rightColRef = useStaggerReveal<HTMLDivElement>();
+
   return (
     <PageContainer title="Workspace / Vertex Industrial">
-      <div className="animate-fade-in animate-delay-1">
+      <div className="reveal-fade is-revealed" ref={containerRef}>
         <div className="section-header">
           <h2 className="section-title">Vertex Industrial Organization</h2>
           <div className="section-desc">Manage workspace settings, team members, and billing.</div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '1.5rem', alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div ref={leftColRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 <Building2 size={20} style={{ color: 'var(--text-secondary)' }} />
@@ -74,7 +79,7 @@ export const Organization: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div ref={rightColRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <CreditCard size={18} style={{ color: 'var(--text-secondary)' }} />

@@ -4,6 +4,7 @@ import { MetricChart } from './MetricChart';
 import { DynamicEvaluationChart } from './DynamicEvaluationChart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Play, Cpu, DollarSign } from 'lucide-react';
+import { useScrollReveal, useStaggerReveal } from '../../hooks/useScrollReveal';
 
 interface EvaluationDashboardProps {
   metrics: EvaluationMetrics;
@@ -20,9 +21,14 @@ const DIST_COLORS: Record<string, string> = {
 };
 
 export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metrics, analytics, onRunBenchmark, loading }) => {
+  const headerRef = useScrollReveal<HTMLDivElement>();
+  const metricsRef = useStaggerReveal<HTMLDivElement>();
+  const statsRef = useStaggerReveal<HTMLDivElement>();
+  const chartsRef = useStaggerReveal<HTMLDivElement>();
+
   return (
-    <div className="animate-fade-in">
-      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="reveal-fade is-revealed">
+      <div className="section-header reveal-up" ref={headerRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h2 className="section-title">Quantitative Agentic Evaluation Matrix</h2>
           <div className="section-desc">Empirical benchmark metrics evaluated over fictional enterprise test dataset.</div>
@@ -32,17 +38,19 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div ref={metricsRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
         <MetricChart label="Grounding Rate (G)" value={metrics.grounding_rate} color="var(--accent-green)" />
         <MetricChart label="Abstention Accuracy (A)" value={metrics.abstention_accuracy} color="var(--accent-blue)" />
         <MetricChart label="Hallucination Rate (H)" value={metrics.hallucination_rate} color="var(--accent-amber)" />
         <MetricChart label="Requirement Extraction Accuracy" value={metrics.requirement_extraction_accuracy} color="var(--accent-blue-hover)" />
       </div>
 
-      <DynamicEvaluationChart analytics={analytics} />
+      <div className="reveal-scale is-revealed">
+        <DynamicEvaluationChart analytics={analytics} />
+      </div>
 
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+      <div ref={statsRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Cpu size={18} style={{ color: 'var(--text-secondary)' }} />
@@ -71,7 +79,7 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
       </div>
 
       {analytics && (analytics.grounding_distribution.some(d => d.value > 0) || analytics.agent_success_rates.length > 0) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
+        <div ref={chartsRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
           <div className="card">
             <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '1rem' }}>Grounding Outcome Distribution</h4>
             <div style={{ width: '100%', height: '240px' }}>
