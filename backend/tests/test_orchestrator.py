@@ -51,9 +51,21 @@ def drafting(s):
     return _trace(s, "drafting")
 
 
+def critic(verdict="approve", fix_by=None):
+    def fn(s):
+        prev = s.critic_feedback
+        s.critic_feedback = {"verdict": verdict, "fix_by": fix_by or [], "round": prev.get("round", 0) + 1,
+                             "issues": [{"line": "IV-200", "detail": "fake issue", "severity": "error",
+                                         "fix_by": f} for f in (fix_by or [])],
+                             "unchanged_since_last_round": False}
+        return _trace(s, "critic")
+    return fn
+
+
 def agents(**overrides):
     base = {"extraction": extraction([ITEM_OK]), "retrieval": retrieval,
-            "planning": planning(0.95), "validation": validation, "drafting": drafting}
+            "planning": planning(0.95), "validation": validation, "drafting": drafting,
+            "critic": critic()}
     return {**base, **overrides}
 
 
@@ -73,7 +85,7 @@ def new_state():
 
 def test_clean_rfq_runs_each_agent_once():
     s = run(new_state(), agents())
-    assert route(s) == ["extraction", "retrieval", "planning", "validation", "drafting", FINISH]
+    assert route(s) == ["extraction", "retrieval", "planning", "validation", "drafting", "critic", FINISH]
     assert all(d["decided_by"] == "forced" for d in s.orchestrator_decisions)
     assert s.quotation_draft["status"] == "PENDING_APPROVAL"
 
@@ -82,7 +94,7 @@ def test_every_handoff_is_a_message():
     s = run(new_state(), agents())
     tasks = [m["to"] for m in s.messages if m["type"] == "task"]
     results = [m["from"] for m in s.messages if m["type"] == "result"]
-    assert tasks == results == ["extraction", "retrieval", "planning", "validation", "drafting"]
+    assert tasks == results == ["extraction", "retrieval", "planning", "validation", "drafting", "critic"]
 
 
 def test_failed_agent_is_retried_not_crashed():
@@ -130,12 +142,12 @@ def test_weak_evidence_on_stocked_item_triggers_one_re_search():
     r = route(s)
     assert r[:4] == ["extraction", "retrieval", "planning", "retrieval"]
     # planning must re-run on the new evidence, then the retry budget forces validation
-    assert r[4:] == ["planning", "validation", "drafting", FINISH]
+    assert r[4:] == ["planning", "validation", "drafting", "critic", FINISH]
 
 
 def test_unstocked_grade_skips_re_search():
     s = run(new_state(), agents(extraction=extraction([ITEM_SS316]), planning=planning(0.40)))
-    assert route(s) == ["extraction", "retrieval", "planning", "validation", "drafting", FINISH]
+    assert route(s) == ["extraction", "retrieval", "planning", "validation", "drafting", "critic", FINISH]
     validation_decision = s.orchestrator_decisions[3]
     assert "not stocked" in validation_decision["reason"]
 
@@ -166,3 +178,61 @@ def test_illegal_llm_choice_falls_back_to_policy(monkeypatch):
 def test_legal_moves_never_allow_drafting_first():
     moves = [m for m, _ in orchestrator.legal_moves(new_state())]
     assert moves == ["extraction"]
+
+
+# ---- critic loop --------------------------------------------------------------
+
+def scripted_critic(*rounds):
+    """Critic that returns the given (verdict, fix_by, unchanged) per round, last one repeating."""
+    calls = {"n": 0}
+
+    def fn(s):
+        verdict, fix_by, unchanged = rounds[min(calls["n"], len(rounds) - 1)]
+        calls["n"] += 1
+        s = critic(verdict, fix_by)(s)
+        s.critic_feedback["unchanged_since_last_round"] = unchanged
+        return s
+    return fn
+
+
+def test_revision_goes_back_to_drafting_with_the_critics_findings():
+    s = run(new_state(), agents(critic=scripted_critic(("revise", ["drafting"], False),
+                                                       ("approve", [], False))))
+    assert route(s)[5:] == ["critic", "drafting", "critic", FINISH]
+    task = [m for m in s.messages if m["type"] == "task" and m["to"] == "drafting"][-1]
+    assert "fake issue" in task["content"]
+
+
+def test_revision_that_changes_nothing_is_escalated():
+    s = run(new_state(), agents(critic=scripted_critic(("revise", ["drafting"], False),
+                                                       ("revise", ["drafting"], True))))
+    assert route(s)[-3:] == ["drafting", "critic", ESCALATE]
+    assert "changed nothing" in s.escalation_notes
+    assert s.quotation_draft["status"] == "CLARIFICATION_REQUIRED"
+
+
+def test_missing_evidence_sends_retrieval_out_and_reruns_downstream():
+    s = run(new_state(), agents(critic=scripted_critic(("revise", ["retrieval"], False),
+                                                       ("approve", [], False))))
+    assert route(s)[5:] == ["critic", "retrieval", "planning", "validation", "drafting", "critic", FINISH]
+
+
+def test_problem_only_a_human_can_decide_is_escalated_at_once():
+    s = run(new_state(), agents(critic=scripted_critic(("revise", ["human"], False))))
+    assert route(s)[-2:] == ["critic", ESCALATE]
+    assert s.grounded_status == "ABSTAINED"
+
+
+def test_revision_budget_is_enforced():
+    s = run(new_state(), agents(critic=scripted_critic(("revise", ["drafting"], False))))
+    assert route(s).count("drafting") == 1 + orchestrator.MAX_REVISIONS
+    assert route(s)[-1] == ESCALATE
+    assert "budget" in s.escalation_notes
+
+
+def test_llm_choosing_escalate_still_records_the_findings(monkeypatch):
+    _fake_llm(monkeypatch, '{"next": "escalate", "reason": "needs a commercial decision"}')
+    s = run(new_state(), agents(critic=scripted_critic(("revise", ["drafting"], False))))
+    branch = s.orchestrator_decisions[-1]
+    assert branch["decided_by"] == "llm" and branch["next"] == ESCALATE
+    assert "fake issue" in s.escalation_notes
