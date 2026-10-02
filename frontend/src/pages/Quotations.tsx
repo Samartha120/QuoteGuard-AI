@@ -4,7 +4,8 @@ import { useQuotation } from '../hooks/useQuotation';
 import { quotationApi } from '../api/quotationApi';
 import { Receipt, Download, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine } from '../components/motion';
+import { ScaleReveal, AnimatedLine } from '../components/motion';
+import { motion } from 'framer-motion';
 
 export const Quotations: React.FC = () => {
   const { quotations, loading } = useQuotation();
@@ -31,7 +32,17 @@ export const Quotations: React.FC = () => {
                 <th>Actions</th>
               </tr>
             </thead>
-            <StaggerTableBody delayOrder={1} className="tbody-stagger">
+            <motion.tbody
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 }
+                }
+              }}
+            >
               {quotations.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -40,7 +51,14 @@ export const Quotations: React.FC = () => {
                 </tr>
               ) : (
                 quotations.map((q) => (
-                  <StaggerTableRow key={q.id} className="table-row">
+                  <motion.tr 
+                    key={q.id} 
+                    className="table-row"
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                  >
                     <td style={{ fontWeight: 500, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>{q.quotation_number}</td>
                     <td style={{ fontWeight: 500, color: 'var(--text-main)' }}>{q.customer_name}</td>
                     <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{q.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -66,10 +84,10 @@ export const Quotations: React.FC = () => {
                         </button>
                       </div>
                     </td>
-                  </StaggerTableRow>
+                  </motion.tr>
                 ))
               )}
-            </StaggerTableBody>
+            </motion.tbody>
           </table>
         </div>
       </ScaleReveal>
