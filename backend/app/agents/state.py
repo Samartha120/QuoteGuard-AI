@@ -23,7 +23,11 @@ class AgentState(BaseModel):
     quotation_draft: Dict[str, Any] = Field(default_factory=dict)
     clarification_questions: List[str] = Field(default_factory=list)
     escalation_notes: Optional[str] = None
-    
+
+    # Critic review of the draft — see app/agents/critic_agent.py
+    # {"verdict": approve|revise, "issues": [...], "fix_by": [...], "reviewed_by": [...], "round": n}
+    critic_feedback: Dict[str, Any] = Field(default_factory=dict)
+
     # Execution Trace Audit Trail
     agent_traces: List[Dict[str, Any]] = Field(default_factory=list)
 
