@@ -87,6 +87,7 @@ interface StaggerContextProps {
   children: React.ReactNode;
   className?: string;
   delayOrder?: number; // base delay
+  style?: React.CSSProperties;
 }
 
 const staggerContainer: Variants = {
@@ -100,7 +101,7 @@ const staggerContainer: Variants = {
   }
 };
 
-export const StaggerContainer: React.FC<StaggerContextProps> = ({ children, className = '', delayOrder = 0 }) => {
+export const StaggerContainer: React.FC<StaggerContextProps> = ({ children, className = '', delayOrder = 0, style }) => {
   return (
     <motion.div 
       variants={staggerContainer}
@@ -108,6 +109,7 @@ export const StaggerContainer: React.FC<StaggerContextProps> = ({ children, clas
       whileInView="visible"
       viewport={{ once: true, margin: "-5%" }}
       className={className}
+      style={style}
       transition={{ delay: delayOrder * 0.2 }}
     >
       {children}
@@ -115,7 +117,7 @@ export const StaggerContainer: React.FC<StaggerContextProps> = ({ children, clas
   );
 };
 
-export const StaggerTableBody: React.FC<StaggerContextProps> = ({ children, className = '', delayOrder = 0 }) => {
+export const StaggerTableBody: React.FC<StaggerContextProps> = ({ children, className = '', delayOrder = 0, style }) => {
   return (
     <motion.tbody 
       variants={staggerContainer}
@@ -123,6 +125,7 @@ export const StaggerTableBody: React.FC<StaggerContextProps> = ({ children, clas
       whileInView="visible"
       viewport={{ once: true, margin: "-5%" }}
       className={className}
+      style={style}
       transition={{ delay: delayOrder * 0.2 }}
     >
       {children}
