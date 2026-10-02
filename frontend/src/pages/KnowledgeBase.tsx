@@ -5,7 +5,8 @@ import { Search, Bookmark, BookmarkCheck, FileText, ChevronRight, Filter, Plus, 
 import { KnowledgeDocument, DocumentChunk } from '../types/knowledge';
 import { KnowledgeUpload } from '../components/knowledge/KnowledgeUpload';
 import { knowledgeApi } from '../api/knowledgeApi';
-import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
+import { PrintReveal, ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine } from '../components/motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const KnowledgeBase: React.FC = () => {
   const { documents, loading, uploadDocument, deleteDocument } = useKnowledge();
@@ -60,16 +61,15 @@ export const KnowledgeBase: React.FC = () => {
     });
   }, [documents, searchQuery, selectedCategory, savedDocs]);
 
-  const headerRef = useScrollReveal<HTMLDivElement>();
-  const categoriesRef = useStaggerReveal<HTMLDivElement>(':scope > button');
-  const articlesRef = useStaggerReveal<HTMLDivElement>(':scope > div.card');
+  }, [documents, searchQuery, selectedCategory, savedDocs]);
 
   return (
     <PageContainer title="Knowledge Center">
-      <div className="reveal-fade" ref={headerRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        
-        {/* Header & Search */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <PrintReveal delay={0.1} width="100%">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          {/* Header & Search */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ flex: '1 1 400px' }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
               <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
@@ -100,10 +100,13 @@ export const KnowledgeBase: React.FC = () => {
 
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
           {/* Categories Sidebar */}
-          <div ref={categoriesRef} style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
-            <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Categories</h3>
+          <StaggerContainer delayOrder={1} style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+            <StaggerItem>
+              <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Categories</h3>
+            </StaggerItem>
             
-            <button 
+            <StaggerItem>
+              <button 
               onClick={() => setSelectedCategory(null)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -153,28 +156,26 @@ export const KnowledgeBase: React.FC = () => {
             {loading && documents.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading knowledge base...</div>
             ) : filteredDocs.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <ScaleReveal delay={0.4} className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--bg-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
                   <Search size={20} style={{ color: 'var(--text-muted)' }} />
                 </div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>No articles found</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Try adjusting your search terms or category filter.</p>
-              </div>
+              </ScaleReveal>
             ) : (
-              <div ref={articlesRef} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <StaggerContainer delayOrder={2} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {filteredDocs.map(doc => (
-                  <div 
-                    key={doc.id} 
-                    onClick={() => setSelectedDoc(doc)}
-                    className="card" 
-                    style={{ 
-                      padding: '1.25rem', cursor: 'pointer', display: 'flex', 
-                      alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem',
-                      transition: 'transform 0.15s, box-shadow 0.15s',
-                    }}
-                    onMouseOver={e => e.currentTarget.style.borderColor = 'var(--border-strong)'}
-                    onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
-                  >
+                  <StaggerItem key={doc.id}>
+                    <motion.div 
+                      onClick={() => setSelectedDoc(doc)}
+                      className="card" 
+                      style={{ 
+                        padding: '1.25rem', cursor: 'pointer', display: 'flex', 
+                        alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem',
+                      }}
+                      whileHover={{ scale: 1.01, borderColor: 'var(--border-strong)', boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}
+                    >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 500, color: 'var(--text-main)' }}>{doc.filename}</h4>
@@ -201,28 +202,39 @@ export const KnowledgeBase: React.FC = () => {
                       >
                         {savedDocs.includes(doc.id) ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
                       </button>
-                      <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-                    </div>
-                  </div>
+                      </div>
+                    </motion.div>
+                  </StaggerItem>
                 ))}
-              </div>
+              </StaggerContainer>
             )}
           </div>
         </div>
-
-      </div>
+      </PrintReveal>
 
       {/* Detail Modal Overlay */}
-      {selectedDoc && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-          background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end',
-          backdropFilter: 'blur(2px)'
-        }}>
-          <div className="animate-slide-up" style={{
-            width: '100%', maxWidth: '700px', height: '100%', background: 'var(--bg-main)',
-            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column'
-          }}>
+      <AnimatePresence>
+        {selectedDoc && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+              background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end',
+              backdropFilter: 'blur(2px)'
+            }}
+          >
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{
+                width: '100%', maxWidth: '700px', height: '100%', background: 'var(--bg-main)',
+                boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column'
+              }}
+            >
             <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', fontWeight: 600 }}>{selectedDoc.document_type}</div>
@@ -293,9 +305,10 @@ export const KnowledgeBase: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </PageContainer>
   );
 };

@@ -7,6 +7,7 @@ import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { useRFQ } from '../hooks/useRFQ';
 import api from '../api/client';
 import { FileText, Receipt, CheckCircle, ShieldAlert, Zap, Clock } from 'lucide-react';
+import { PrintReveal, StaggerContainer, AnimatedLine } from '../components/motion';
 
 interface DashboardSummary {
   total_rfqs: number;
@@ -37,13 +38,18 @@ export const Dashboard: React.FC = () => {
   return (
     <PageContainer title="Platform Overview & Agent Workflow">
       {error && (
-        <div
-          className="card animate-fade-in"
-          style={{ padding: '1rem 1.25rem', marginBottom: '1rem', borderLeft: '3px solid #ef4444', color: '#ef4444', fontSize: '0.85rem' }}
-        >
-          {error}
-        </div>
+        <PrintReveal delay={0.1}>
+          <div
+            className="card"
+            style={{ padding: '1rem 1.25rem', marginBottom: '1rem', borderLeft: '3px solid #ef4444', color: '#ef4444', fontSize: '0.85rem' }}
+          >
+            {error}
+          </div>
+        </PrintReveal>
       )}
+
+      <AnimatedLine horizontal delay={0.2} />
+      <div style={{ height: '2rem' }} />
 
       {/* Primary metric cards — each gets a stagger index for sequential entrance */}
       <div className="grid-metrics">
@@ -56,10 +62,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Main operational content */}
-      <div
-        className="dashboard-content animate-fade-in animate-delay-2"
-        style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}
-      >
+      <StaggerContainer delayOrder={2} className="dashboard-content" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start', marginTop: '2rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <RecentRFQs rfqs={rfqs} />
         </div>
@@ -67,7 +70,7 @@ export const Dashboard: React.FC = () => {
           <WorkflowOverview />
           <ActivityFeed rfqs={rfqs} />
         </div>
-      </div>
+      </StaggerContainer>
     </PageContainer>
   );
 };

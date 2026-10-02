@@ -4,23 +4,20 @@ import { useQuotation } from '../hooks/useQuotation';
 import { quotationApi } from '../api/quotationApi';
 import { Receipt, Download, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal';
+import { ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine } from '../components/motion';
 
 export const Quotations: React.FC = () => {
   const { quotations, loading } = useQuotation();
   const navigate = useNavigate();
-  
-  const cardRef = useScrollReveal<HTMLDivElement>();
-  const tableRef = useStaggerReveal<HTMLTableSectionElement>(':scope > tr');
 
   return (
     <PageContainer title="Quotations Management">
-      <div className="card reveal-up" ref={cardRef}>
+      <ScaleReveal delay={0.2} className="card" width="100%">
         <div className="section-header">
           <h3 className="section-title">Quotation Register</h3>
         </div>
-
-        <div className="table-container">
+        <AnimatedLine horizontal delay={0.4} />
+        <div className="table-container" style={{ marginTop: '1rem' }}>
           <table className="table">
             <thead>
               <tr>
@@ -34,7 +31,7 @@ export const Quotations: React.FC = () => {
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody ref={tableRef}>
+            <StaggerTableBody delayOrder={1} className="tbody-stagger">
               {quotations.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -43,7 +40,7 @@ export const Quotations: React.FC = () => {
                 </tr>
               ) : (
                 quotations.map((q) => (
-                  <tr key={q.id}>
+                  <StaggerTableRow key={q.id} className="table-row">
                     <td style={{ fontWeight: 500, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>{q.quotation_number}</td>
                     <td style={{ fontWeight: 500, color: 'var(--text-main)' }}>{q.customer_name}</td>
                     <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{q.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -69,13 +66,13 @@ export const Quotations: React.FC = () => {
                         </button>
                       </div>
                     </td>
-                  </tr>
+                  </StaggerTableRow>
                 ))
               )}
-            </tbody>
+            </StaggerTableBody>
           </table>
         </div>
-      </div>
+      </ScaleReveal>
     </PageContainer>
   );
 };

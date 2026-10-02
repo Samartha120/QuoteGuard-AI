@@ -45,39 +45,18 @@ const AnimatedValue: React.FC<{ value: string | number }> = ({ value }) => {
   return <>{displayValue}</>;
 };
 
+import { motion } from 'framer-motion';
+
 export const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtext, icon: Icon, index = 0 }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(12px)';
-    el.style.transition = `opacity 0.5s cubic-bezier(0.22,1,0.36,1), transform 0.5s cubic-bezier(0.22,1,0.36,1)`;
-    el.style.transitionDelay = `${index * 60}ms`;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            el.style.opacity = '1';
-            el.style.transform = 'translateY(0)';
-            observer.disconnect();
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [index]);
-
   return (
-    <div ref={cardRef} className="metric-card">
+    <motion.div 
+      className="metric-card"
+      initial={{ opacity: 0, y: 15, scale: 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-10%" }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: index * 0.08 }}
+      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', borderColor: 'var(--border-focus)' }}
+    >
       <div className="metric-header">
         <span>{title}</span>
         {Icon && <Icon size={16} />}
@@ -86,6 +65,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtext, i
         <AnimatedValue value={value} />
       </div>
       {subtext && <div className="metric-subtext">{subtext}</div>}
-    </div>
+    </motion.div>
   );
 };

@@ -3,7 +3,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { EvaluationDashboard } from '../components/evaluation/EvaluationDashboard';
 import { evaluationApi } from '../api/evaluationApi';
 import { EvaluationMetrics, EvaluationAnalytics, AnalyticsFilters } from '../types/evaluation';
-import { useScrollReveal } from '../hooks/useScrollReveal';
+import { PrintReveal, ScaleReveal } from '../components/motion';
 
 const RFQ_STATUSES = ['', 'DRAFT', 'PROCESSING', 'GROUNDED', 'CLARIFICATION_REQUIRED', 'COMPLETED'];
 
@@ -13,8 +13,6 @@ export const Evaluation: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [filters, setFilters] = useState<AnalyticsFilters>({});
-  
-  const filtersRef = useScrollReveal<HTMLDivElement>();
 
   const loadAnalytics = useCallback((f: AnalyticsFilters) => {
     evaluationApi.getAnalytics(f).then(setAnalytics).catch(() => setAnalytics(null));
@@ -56,7 +54,7 @@ export const Evaluation: React.FC = () => {
   return (
     <PageContainer title="Quantitative AI Evaluation & Responsible AI">
       {/* Filters bar */}
-      <div className="card reveal-up" ref={filtersRef} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+      <ScaleReveal delay={0.1} className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">From</label>
           <input type="date" className="form-input" value={filters.start_date || ''} onChange={e => updateFilter('start_date', e.target.value)} />
@@ -82,19 +80,21 @@ export const Evaluation: React.FC = () => {
         {hasActiveFilters && (
           <button className="btn btn-secondary" onClick={clearFilters}>Clear filters</button>
         )}
-      </div>
+      </ScaleReveal>
 
       {initializing || !metrics ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
           Loading evaluation metrics...
         </div>
       ) : (
-        <EvaluationDashboard
-          metrics={metrics}
-          analytics={analytics}
-          onRunBenchmark={handleRunBenchmark}
-          loading={loading}
-        />
+        <PrintReveal delay={0.2} width="100%">
+          <EvaluationDashboard
+            metrics={metrics}
+            analytics={analytics}
+            onRunBenchmark={handleRunBenchmark}
+            loading={loading}
+          />
+        </PrintReveal>
       )}
     </PageContainer>
   );
