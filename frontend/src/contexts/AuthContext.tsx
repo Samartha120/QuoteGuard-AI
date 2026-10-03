@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi, TOKEN_KEY } from '../api/authApi';
+import { authApi, TOKEN_KEY, REFRESH_TOKEN_KEY } from '../api/authApi';
 
 export interface User {
   id: string;
@@ -40,6 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .catch(() => {
         // Token invalid/expired — the client interceptor clears it on 401.
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
         setUser(null);
       })
       .finally(() => setLoading(false));
@@ -48,18 +49,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     const res = await authApi.login(email, password);
     localStorage.setItem(TOKEN_KEY, res.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, res.refresh_token);
     setUser(res.user);
   };
 
   const register = async (name: string, email: string, password: string) => {
     const res = await authApi.register(name, email, password);
     localStorage.setItem(TOKEN_KEY, res.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, res.refresh_token);
     setUser(res.user);
   };
 
   const loginWithGoogle = async (idToken: string) => {
     const res = await authApi.googleLogin(idToken);
     localStorage.setItem(TOKEN_KEY, res.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, res.refresh_token);
     setUser(res.user);
   };
 
@@ -70,6 +74,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUser(null);
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   };
 
   return (

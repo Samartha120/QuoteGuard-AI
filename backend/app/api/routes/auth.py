@@ -8,14 +8,16 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
     UpdateProfileRequest,
+    RefreshRequest,
 )
 from app.services.auth_service import (
     authenticate_user,
     update_user_name,
     create_user,
     get_user_by_email,
+    get_user_by_id,
 )
-from app.core.security import create_access_token
+from app.core.security import create_access_token, create_refresh_token, decode_refresh_token
 from app.core.config import settings
 from app.api.deps import get_current_user
 from app.db.models import User
@@ -25,8 +27,10 @@ router = APIRouter()
 
 def _token_response(user: User) -> dict:
     token = create_access_token(subject=user.id, extra={"role": user.role})
+    refresh_token = create_refresh_token(subject=user.id)
     return {
         "access_token": token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": UserResponse.model_validate(user),
     }
@@ -109,6 +113,24 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def read_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(payload: RefreshRequest, db: Session = Depends(get_db)):
+    decoded = decode_refresh_token(payload.refresh_token)
+    if not decoded:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    user_id = decoded.get("sub")
+    user = get_user_by_id(db, user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
+    return _token_response(user)
 
 
 @router.patch("/me", response_model=UserResponse)
