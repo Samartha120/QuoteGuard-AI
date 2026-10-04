@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+
+    # Let the supervisor LLM choose between legal next moves (app/agents/orchestrator.py).
+    # Off, or in demo mode, it takes the first legal move instead.
+    ORCHESTRATOR_USE_LLM: bool = True
     
     # Database
     DATABASE_URL: str = "sqlite:///./app/db/quoteguard.db"
