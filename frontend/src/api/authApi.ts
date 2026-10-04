@@ -10,11 +10,12 @@ export interface AuthUser {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   user: AuthUser;
 }
 
-export const TOKEN_KEY = 'quoteguard_token';
+export { TOKEN_KEY, REFRESH_TOKEN_KEY } from './client';
 
 export const authApi = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
