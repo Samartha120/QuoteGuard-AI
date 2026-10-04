@@ -254,3 +254,11 @@ def test_clarify_decision_drafts_a_clarification_and_finishes():
     assert route(s)[-1] == FINISH
     task = [m for m in s.messages if m["type"] == "task" and m["to"] == "drafting"][0]
     assert "clarify" in task["content"] and "size not given" in task["content"]
+
+
+def test_escalation_note_says_why_the_agent_failed():
+    def broken(s):
+        raise RuntimeError("LLM provider unavailable")
+    s = run(new_state(), agents(extraction=broken))
+    assert route(s)[-1] == ESCALATE
+    assert "LLM provider unavailable" in s.escalation_notes

@@ -155,7 +155,10 @@ def legal_moves(state: AgentState) -> List[Move]:
 
     def run_or_escalate(agent: str, reason: str) -> List[Move]:
         if tries.get(agent, 0) >= MAX_ATTEMPTS:
-            return [(ESCALATE, f"{AGENT_LABELS[agent]} failed {tries[agent]} times")]
+            last = next((m["content"] for m in reversed(state.messages)
+                         if m.get("from") == agent and m.get("type") == "error"), None)
+            return [(ESCALATE, f"{AGENT_LABELS[agent]} failed {tries[agent]} times"
+                               + (f" (last error: {last[:160]})" if last else ""))]
         return [(agent, reason)]
 
     if state.step > MAX_STEPS:
