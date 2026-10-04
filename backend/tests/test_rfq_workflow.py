@@ -9,7 +9,7 @@ def test_full_agent_workflow():
     
     final_state = workflow_orchestrator.run_pipeline(initial_state)
     agents_run = [t["agent_name"] for t in final_state.agent_traces]
-    for name in ("Requirement Extraction Agent", "Retrieval Agent", "Planning & Strategy Agent",
-                 "Validation Agent", "Drafting Agent", "Critic Agent"):
+    for name in ("Requirement Extraction Agent", "Retrieval Agent", "Validation & Planning Agent",
+                 "Drafting Agent", "Critic Agent"):
         assert name in agents_run
     assert final_state.quotation_draft is not None

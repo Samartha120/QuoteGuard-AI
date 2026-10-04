@@ -32,18 +32,17 @@ def retrieval(s):
     return _trace(s, "retrieval")
 
 
-def planning(conf):
+def vp(conf, decision=None, issues=None):
+    """Fake Validation & Planning agent: scores every line at `conf` and decides."""
     def fn(s):
         names = [i["product_name"] for i in s.extracted_requirements["line_items"]]
         s.field_confidences = {n: conf for n in names}
-        s.abstention_required = conf < settings.GROUNDING_THRESHOLD
+        d = decision or ("proceed" if conf >= settings.GROUNDING_THRESHOLD else "clarify")
+        s.abstention_required = d != "proceed"
         s.grounded_status = "ABSTAINED" if s.abstention_required else "GROUNDED"
-        return _trace(s, "planning")
+        s.validation_plan = {"decision": d, "issues": issues or []}
+        return _trace(s, "validation_planning")
     return fn
-
-
-def validation(s):
-    return _trace(s, "validation")
 
 
 def drafting(s):
@@ -64,7 +63,7 @@ def critic(verdict="approve", fix_by=None):
 
 def agents(**overrides):
     base = {"extraction": extraction([ITEM_OK]), "retrieval": retrieval,
-            "planning": planning(0.95), "validation": validation, "drafting": drafting,
+            "validation_planning": vp(0.95), "drafting": drafting,
             "critic": critic()}
     return {**base, **overrides}
 
@@ -85,7 +84,7 @@ def new_state():
 
 def test_clean_rfq_runs_each_agent_once():
     s = run(new_state(), agents())
-    assert route(s) == ["extraction", "retrieval", "planning", "validation", "drafting", "critic", FINISH]
+    assert route(s) == ["extraction", "retrieval", "validation_planning", "drafting", "critic", FINISH]
     assert all(d["decided_by"] == "forced" for d in s.orchestrator_decisions)
     assert s.quotation_draft["status"] == "PENDING_APPROVAL"
 
@@ -94,7 +93,7 @@ def test_every_handoff_is_a_message():
     s = run(new_state(), agents())
     tasks = [m["to"] for m in s.messages if m["type"] == "task"]
     results = [m["from"] for m in s.messages if m["type"] == "result"]
-    assert tasks == results == ["extraction", "retrieval", "planning", "validation", "drafting", "critic"]
+    assert tasks == results == ["extraction", "retrieval", "validation_planning", "drafting", "critic"]
 
 
 def test_failed_agent_is_retried_not_crashed():
@@ -138,18 +137,18 @@ def test_empty_extraction_is_read_again():
 
 
 def test_weak_evidence_on_stocked_item_triggers_one_re_search():
-    s = run(new_state(), agents(planning=planning(0.55)))
+    s = run(new_state(), agents(validation_planning=vp(0.55)))
     r = route(s)
-    assert r[:4] == ["extraction", "retrieval", "planning", "retrieval"]
-    # planning must re-run on the new evidence, then the retry budget forces validation
-    assert r[4:] == ["planning", "validation", "drafting", "critic", FINISH]
+    assert r[:4] == ["extraction", "retrieval", "validation_planning", "retrieval"]
+    # validation & planning re-runs on the new evidence, then the retry budget forces drafting
+    assert r[4:] == ["validation_planning", "drafting", "critic", FINISH]
 
 
 def test_unstocked_grade_skips_re_search():
-    s = run(new_state(), agents(extraction=extraction([ITEM_SS316]), planning=planning(0.40)))
-    assert route(s) == ["extraction", "retrieval", "planning", "validation", "drafting", "critic", FINISH]
-    validation_decision = s.orchestrator_decisions[3]
-    assert "not stocked" in validation_decision["reason"]
+    s = run(new_state(), agents(extraction=extraction([ITEM_SS316]), validation_planning=vp(0.40)))
+    assert route(s) == ["extraction", "retrieval", "validation_planning", "drafting", "critic", FINISH]
+    drafting_decision = s.orchestrator_decisions[3]
+    assert "not stocked" in drafting_decision["reason"]
 
 
 def _fake_llm(monkeypatch, reply):
@@ -159,17 +158,17 @@ def _fake_llm(monkeypatch, reply):
 
 
 def test_llm_choice_is_used_when_legal(monkeypatch):
-    _fake_llm(monkeypatch, '{"next": "validation", "reason": "evidence is adequate"}')
-    s = run(new_state(), agents(planning=planning(0.55)))
+    _fake_llm(monkeypatch, '{"next": "drafting", "reason": "evidence is adequate"}')
+    s = run(new_state(), agents(validation_planning=vp(0.55)))
     branch = s.orchestrator_decisions[3]
     assert branch["decided_by"] == "llm"
-    assert branch["next"] == "validation"
+    assert branch["next"] == "drafting"
     assert branch["reason"] == "evidence is adequate"
 
 
 def test_illegal_llm_choice_falls_back_to_policy(monkeypatch):
-    _fake_llm(monkeypatch, '{"next": "drafting", "reason": "skip ahead"}')
-    s = run(new_state(), agents(planning=planning(0.55)))
+    _fake_llm(monkeypatch, '{"next": "critic", "reason": "skip ahead"}')
+    s = run(new_state(), agents(validation_planning=vp(0.55)))
     branch = s.orchestrator_decisions[3]
     assert branch["decided_by"] == "policy"
     assert branch["next"] == "retrieval"
@@ -198,7 +197,7 @@ def scripted_critic(*rounds):
 def test_revision_goes_back_to_drafting_with_the_critics_findings():
     s = run(new_state(), agents(critic=scripted_critic(("revise", ["drafting"], False),
                                                        ("approve", [], False))))
-    assert route(s)[5:] == ["critic", "drafting", "critic", FINISH]
+    assert route(s)[4:] == ["critic", "drafting", "critic", FINISH]
     task = [m for m in s.messages if m["type"] == "task" and m["to"] == "drafting"][-1]
     assert "fake issue" in task["content"]
 
@@ -214,7 +213,7 @@ def test_revision_that_changes_nothing_is_escalated():
 def test_missing_evidence_sends_retrieval_out_and_reruns_downstream():
     s = run(new_state(), agents(critic=scripted_critic(("revise", ["retrieval"], False),
                                                        ("approve", [], False))))
-    assert route(s)[5:] == ["critic", "retrieval", "planning", "validation", "drafting", "critic", FINISH]
+    assert route(s)[4:] == ["critic", "retrieval", "validation_planning", "drafting", "critic", FINISH]
 
 
 def test_problem_only_a_human_can_decide_is_escalated_at_once():
@@ -236,3 +235,22 @@ def test_llm_choosing_escalate_still_records_the_findings(monkeypatch):
     branch = s.orchestrator_decisions[-1]
     assert branch["decided_by"] == "llm" and branch["next"] == ESCALATE
     assert "fake issue" in s.escalation_notes
+
+
+# ---- Validation & Planning decision -------------------------------------------
+
+def test_escalate_decision_still_gets_a_draft_then_goes_to_a_human():
+    internal = [{"item": "payment terms", "kind": "conflicting", "resolver": "internal",
+                 "detail": "customer asks for 90-day credit"}]
+    s = run(new_state(), agents(validation_planning=vp(0.95, "escalate", internal)))
+    assert route(s) == ["extraction", "retrieval", "validation_planning", "drafting", "critic", ESCALATE]
+    assert "90-day credit" in s.escalation_notes
+    assert s.quotation_draft["status"] == "CLARIFICATION_REQUIRED"
+
+
+def test_clarify_decision_drafts_a_clarification_and_finishes():
+    customer = [{"item": "IV-200", "kind": "ambiguous", "resolver": "customer", "detail": "size not given"}]
+    s = run(new_state(), agents(validation_planning=vp(0.95, "clarify", customer)))
+    assert route(s)[-1] == FINISH
+    task = [m for m in s.messages if m["type"] == "task" and m["to"] == "drafting"][0]
+    assert "clarify" in task["content"] and "size not given" in task["content"]
