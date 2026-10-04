@@ -19,6 +19,10 @@ class AgentState(BaseModel):
     overall_confidence: float = 0.0
     abstention_required: bool = False
     
+    # Validation & Planning decision — see app/agents/validation_planning_agent.py
+    # {"decision": proceed|clarify|escalate, "issues": [{item, kind, detail, resolver, source}], "reviewed_by": [...]}
+    validation_plan: Dict[str, Any] = Field(default_factory=dict)
+
     # Stage 5: Drafting Output
     quotation_draft: Dict[str, Any] = Field(default_factory=dict)
     clarification_questions: List[str] = Field(default_factory=list)
