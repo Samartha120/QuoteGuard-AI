@@ -48,16 +48,14 @@ work lets each step be checked and, where needed, redone:
 flowchart LR
     U([Sales user / RFQ upload]) --> API[FastAPI /api/rfqs/:id/process]
     API --> S{{Supervisor<br/>orchestrator.py}}
-    S -- task --> E[Requirement Extraction Agent<br/>LLM]
-    S -- task --> R[Retrieval Agent<br/>tool calls]
-    S -- task --> P[Planning Agent<br/>confidence + abstention]
-    S -- task --> V[Validation Agent]
-    S -- task --> D[Drafting Agent]
+    S -- task --> E[1. Requirement Analysis Agent<br/>LLM]
+    S -- task --> R[2. Retrieval Agent<br/>tool calls]
+    S -- task --> V[3. Validation & Planning Agent<br/>rules + LLM: proceed / clarify / escalate]
+    S -- task --> D[4. Quotation & Communication Agent]
     S -- task --> C[Critic Agent<br/>rules + LLM]
     E -- result --> S
     R -- result --> S
-    P -- result --> S
-    V -- result --> S
+    V -- "decision + issues" --> S
     D -- result --> S
     C -- "approve / revise + findings" --> S
     R <--> KB[(ChromaDB knowledge base<br/>catalogue · pricing · policy)]
@@ -99,10 +97,12 @@ Behaviour that depends on what agents produce:
 
 | Situation | Supervisor's response |
 |---|---|
-| Extraction returns no line items | Re-read the RFQ, or escalate |
-| Retrieval returns no evidence | Search again, or let planning abstain |
-| Weak evidence for a **stocked** item | One more search before validation |
-| Requested grade is **not stocked** (e.g. SS316) | No re-search — searching cannot fix it; go to validation and abstain |
+| Requirement Analysis returns no line items | Re-read the RFQ, or escalate |
+| Retrieval returns no evidence | Search again, or let Validation & Planning decide |
+| Weak evidence for a **stocked** item | One more search before drafting |
+| Requested grade is **not stocked** (e.g. SS316) | No re-search — searching cannot fix it; draft a clarification |
+| Validation & Planning decides **proceed** / **clarify** | Draft a priced quotation / a clarification request |
+| Validation & Planning decides **escalate** | Draft the clarification, let the critic review it, then hand it to a human |
 | Critic approves the draft | Finish; the draft waits for human approval |
 | Critic asks for a revision | Send it to drafting or retrieval with the findings — the LLM chooses, or escalates |
 | Revision changed nothing / budget of 2 revisions used | Escalate with the critic's findings |
@@ -118,12 +118,27 @@ Every decision is stored in `state.orchestrator_decisions` (`step`, `next`, `rea
 | Agent | File | What it does | Uses LLM | Owner |
 |---|---|---|---|---|
 | Supervisor | `agents/orchestrator.py` | Chooses the next agent, retries, escalates, logs every decision | Yes, at branch points | Vedant |
-| Requirement Extraction | `agents/requirement_agent.py` | Turns RFQ text into structured line items and commercial terms | Yes | Samartha |
-| Retrieval | `agents/retrieval_agent.py` | Calls `search_catalogue`, `lookup_price`, `get_delivery_policy` over ChromaDB | No (tool calls) | Atharva |
-| Planning | `agents/planning_agent.py` | Scores grounding confidence per line, flags unstocked grades, decides abstention | No | Samartha |
-| Validation | `agents/validation_agent.py` | Marks each line verified or abstained against the threshold | No | Samartha |
-| Drafting | `agents/drafting_agent.py` | Prices lines from the approved CSV with citations, or writes clarification questions | No | Tej |
-| Critic | `agents/critic_agent.py` | Reviews the draft: rule checks + LLM policy review; returns approve / revise | Yes | Vedant |
+| 1. Requirement Analysis | `agents/requirement_agent.py` | Turns RFQ text into structured line items and commercial terms | Yes | Samartha |
+| 2. Retrieval | `agents/retrieval_agent.py` | Calls `search_catalogue`, `lookup_price`, `get_delivery_policy` over ChromaDB | No (tool calls) | Atharva |
+| 3. Validation & Planning | `agents/validation_planning_agent.py` | Checks the evidence is enough; finds missing, conflicting or ambiguous information; decides **proceed / clarify / escalate** | Yes | Vedant |
+| 4. Quotation & Communication | `agents/drafting_agent.py` | Prices lines from the approved CSV with citations, or writes clarification questions and escalation notes | No | Tej |
+| Critic (beyond the proposal) | `agents/critic_agent.py` | Reviews the draft: rule checks + LLM policy review; returns approve / revise | Yes | Vedant |
+
+Agents 1–4 are the four agents of the approved proposal. The supervisor and the critic were added on top.
+
+The **Validation & Planning Agent** (`run_validation_planning_agent`) works in three steps:
+
+1. **Grounding scores** — reuses the per-line confidence, threshold and verified / abstained logic in
+   `planning_agent.py` and `validation_agent.py`, so the UI and downstream agents see the same fields.
+2. **Rules** — product not in the catalogue (or only a loose match, e.g. "pressure relief valves" →
+   confirm PV-100), missing or below-minimum quantity, unstocked grade, weak evidence, credit beyond Net 30.
+3. **LLM review** — vague specifications, terms that clash with policy, contradictory instructions. Each
+   finding must quote the RFQ (and the evidence, for a conflict); quotes are checked against the real
+   texts, repeats of rule findings are dropped, and a second narrow LLM question must confirm each
+   conflict or ambiguity.
+
+Every issue says who can resolve it. Anything only someone **inside the company** can decide → *escalate*;
+anything only the **customer** can answer → *clarify*; nothing → *proceed*.
 
 The **critic** (`run_critic_agent`) runs after every draft. It works in two layers:
 
@@ -141,8 +156,9 @@ The **critic** (`run_critic_agent`) runs after every draft. It works in two laye
   - if the requested material grade is not in the approved pricing schedule → **0.40**;
   - otherwise `min(1.0, S_max + B)`, where `S_max` is the highest similarity among retrieved chunks and
     `B = 0.10` when the product name appears verbatim in a retrieved chunk.
-- **Abstention** (`planning_agent.py`): if any line scores below `GROUNDING_THRESHOLD` (default 0.80)
-  or has an unstocked grade, the RFQ is `ABSTAINED` and no price is generated for those lines.
+- **Abstention** (Validation & Planning): if any line scores below `GROUNDING_THRESHOLD` (default 0.80),
+  has an unstocked grade, or the decision is *clarify* or *escalate*, the RFQ is `ABSTAINED` and no price
+  is generated for the affected lines.
 - **Retrieval** keeps the top-k chunks and marks each with `is_grounded = score >= threshold`; the
   confidence score, not a hard filter, decides what is trusted.
 - **Prices** are never produced by an LLM. Drafting reads them from
@@ -193,7 +209,8 @@ run log. Abridged real output for demo RFQ 1 (local run, llama3):
 backend/
   app/
     agents/      orchestrator.py (supervisor), critic_agent.py, requirement/retrieval/
-                 planning/validation/drafting agents, state.py, workflow.py (entry point)
+                 validation_planning_agent.py, requirement/retrieval/drafting agents,
+                 planning/validation helpers, state.py, workflow.py (entry point)
     tools/       catalogue, pricing, policy and search tools; pricing_catalog.py (CSV loader)
     rag/         chunking, embeddings, ChromaDB vector store, retriever, ingestion
     llm/         OpenAI-compatible client, prompts, JSON parsing
@@ -252,9 +269,10 @@ cd backend
 python -m pytest -q
 ```
 
-7 test modules, 41 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
+8 test modules, 63 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
 routing (`test_orchestrator.py` — retries, escalation, re-extraction, re-search rules, LLM-vs-policy
-choice, and the critic revision loop) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
+choice, the critic revision loop and the Validation & Planning decision), the Validation & Planning
+agent (`test_validation_planning.py`) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
 safeguards on LLM findings). Agent tests use fake agents or a fake LLM, so they need no API key.
 
 ## 11. Evaluation
@@ -269,8 +287,8 @@ one that must abstain) and is being extended.
 
 - Drafting does not yet act on the critic's findings, so today a revision request ends in escalation
   (the supervisor sees the draft did not change). Making drafting revise is in progress.
-- Retrieval, planning and validation are deterministic today; making retrieval choose its own tools and
-  queries, and merging planning and validation into one Validation & Planning Agent, is in progress.
+- Retrieval calls a fixed set of tools today; letting it choose its own tools and queries is in review
+  (PR #2). Agent names in some trace entries still use the older labels until each owner renames them.
 - The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup
   above until the Docker setup is fixed.
 - The knowledge base is loaded when the server starts; scripts that skip startup see an empty store.
@@ -279,10 +297,10 @@ one that must abstain) and is being extended.
 
 | Member | Area |
 |---|---|
-| Samartha Shrestha | Platform (backend, frontend, RAG, auth, evaluation), extraction agent |
-| Vedant Nair | Supervisor orchestrator, critic agent, deployment |
-| Atharva Kulkarni | Retrieval agent, design document, I/O definitions |
-| Tej Narayan Sah | Drafting agent, execution trace, synopsis, demo video |
+| Samartha Shrestha | Platform (backend, frontend, RAG, auth, evaluation), Requirement Analysis Agent |
+| Vedant Nair | Validation & Planning Agent, supervisor, critic agent, deployment |
+| Atharva Kulkarni | Retrieval Agent, design document, I/O definitions |
+| Tej Narayan Sah | Quotation & Communication Agent, execution trace, synopsis, demo video |
 
 QuoteGuard AI is an academic prototype built on fictional company data ("Vertex Industrial Supplies
 Pvt. Ltd."). Released under the MIT License.
