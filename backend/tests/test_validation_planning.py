@@ -167,3 +167,14 @@ def test_llm_repeat_of_a_rule_finding_is_dropped(monkeypatch):
     fake_llm(monkeypatch, [repeat])
     s = vpa.run_validation_planning_agent(make_state([item(material_grade="SS316")]))
     assert [i["source"] for i in s.validation_plan["issues"]] == ["rules"]
+
+
+def test_llm_outage_falls_back_to_rules(monkeypatch):
+    from app.llm.client import LLMUnavailableError
+    monkeypatch.setattr(llm_client, "demo_mode", False)
+
+    def down(**kw):
+        raise LLMUnavailableError("provider down")
+    monkeypatch.setattr(llm_client, "generate_completion", down)
+    s = vpa.run_validation_planning_agent(make_state([item(material_grade="SS316")]))
+    assert s.validation_plan["reviewed_by"] == ["rules"] and s.validation_plan["decision"] == "clarify"
