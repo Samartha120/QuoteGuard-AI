@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from typing import Dict, Any, List, Optional
 from app.core.config import settings
 from app.core.logging import logger
@@ -51,7 +52,40 @@ class LLMClient:
     def _generate_demo_completion(self, user_prompt: str) -> str:
         """Deterministic demo output for zero-cost offline viva demonstration."""
         prompt_lower = user_prompt.lower()
-        
+
+        # Retrieval planning case: the real prompt embeds the extracted
+        # requirements JSON verbatim, so parse it out and build a genuine
+        # per-item plan instead of returning a canned response.
+        if "deciding which knowledge-base tools" in prompt_lower:
+            item_plans = []
+            needs_policy = False
+            match = re.search(r"EXTRACTED REQUIREMENTS:\s*(\{.*?\})\s*AVAILABLE TOOLS:", user_prompt, re.DOTALL)
+            if match:
+                try:
+                    reqs = json.loads(match.group(1))
+                    for item in reqs.get("line_items", []):
+                        p_name = item.get("product_name", "")
+                        p_code = item.get("product_code") or p_name
+                        calls = [{"tool": "search_catalogue", "query": f"{p_name} {item.get('material_grade', '')}".strip()}]
+                        if p_code:
+                            calls.append({"tool": "lookup_price", "query": p_code})
+                        item_plans.append({"product_name": p_name, "calls": calls})
+                    needs_policy = bool(reqs.get("payment_terms") or reqs.get("delivery_terms"))
+                except Exception:
+                    pass
+
+            if not item_plans:
+                item_plans = [{
+                    "product_name": "Industrial Valve IV-200",
+                    "calls": [
+                        {"tool": "search_catalogue", "query": "IV-200 Industrial Valve"},
+                        {"tool": "lookup_price", "query": "IV-200"}
+                    ]
+                }]
+                needs_policy = True
+
+            return json.dumps({"needs_policy_lookup": needs_policy, "item_plans": item_plans})
+
         # RFQ 1 Complete standard case
         if "apex engineering" in prompt_lower or ("iv-200" in prompt_lower and "ss304" in prompt_lower):
             if "extract" in prompt_lower:

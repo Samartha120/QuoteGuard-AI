@@ -25,6 +25,33 @@ Return JSON with:
 - delivery_terms (string or null)
 """
 
+RETRIEVAL_PLANNING_PROMPT = """You are deciding which knowledge-base tools to call to find grounding evidence for this RFQ before a quotation can be drafted.
+
+EXTRACTED REQUIREMENTS:
+{requirements_json}
+
+AVAILABLE TOOLS:
+- search_catalogue(query): searches approved product catalogue / technical specification documents.
+- lookup_price(query): searches approved pricing schedules.
+- get_delivery_policy(): searches delivery, credit, and warranty policy documents. Relevant only if payment_terms or delivery_terms were requested and need verifying against company policy.
+
+For EACH line item, decide which of search_catalogue and lookup_price are actually needed, and write the exact search query to use (prefer the product code when available; otherwise combine product name with any distinguishing spec/material detail). Only include a tool call if it is genuinely relevant to that item. Also decide whether get_delivery_policy is needed for this RFQ overall.
+
+Return ONLY JSON in this exact shape, no other text:
+{{
+  "needs_policy_lookup": true or false,
+  "item_plans": [
+    {{
+      "product_name": "...",
+      "calls": [
+        {{"tool": "search_catalogue", "query": "..."}},
+        {{"tool": "lookup_price", "query": "..."}}
+      ]
+    }}
+  ]
+}}
+"""
+
 VALIDATION_PROMPT = """Evaluate the extracted customer requirements against retrieved knowledge base evidence:
 
 EXTRACTED REQUIREMENTS:
