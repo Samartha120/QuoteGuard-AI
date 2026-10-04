@@ -1,6 +1,5 @@
 import os
 import json
-import re
 from typing import Dict, Any, List, Optional
 from app.core.config import settings
 from app.core.logging import logger
@@ -59,10 +58,29 @@ class LLMClient:
         if "deciding which knowledge-base tools" in prompt_lower:
             item_plans = []
             needs_policy = False
-            match = re.search(r"EXTRACTED REQUIREMENTS:\s*(\{.*?\})\s*AVAILABLE TOOLS:", user_prompt, re.DOTALL)
-            if match:
+            # Brace-balanced extraction instead of a fixed regex boundary:
+            # a regex anchored on "...}\s*AVAILABLE TOOLS:" breaks as soon as
+            # anything (like the re-search retry context) is inserted between
+            # the JSON and that marker. Scanning for the first balanced {...}
+            # after the marker is robust to whatever text follows it.
+            reqs_json_text = None
+            marker = "EXTRACTED REQUIREMENTS:"
+            marker_idx = user_prompt.find(marker)
+            if marker_idx != -1:
+                start = user_prompt.find("{", marker_idx)
+                if start != -1:
+                    depth = 0
+                    for i, ch in enumerate(user_prompt[start:], start=start):
+                        if ch == "{":
+                            depth += 1
+                        elif ch == "}":
+                            depth -= 1
+                            if depth == 0:
+                                reqs_json_text = user_prompt[start:i + 1]
+                                break
+            if reqs_json_text:
                 try:
-                    reqs = json.loads(match.group(1))
+                    reqs = json.loads(reqs_json_text)
                     for item in reqs.get("line_items", []):
                         p_name = item.get("product_name", "")
                         p_code = item.get("product_code") or p_name
