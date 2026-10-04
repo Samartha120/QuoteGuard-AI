@@ -29,7 +29,7 @@ RETRIEVAL_PLANNING_PROMPT = """You are deciding which knowledge-base tools to ca
 
 EXTRACTED REQUIREMENTS:
 {requirements_json}
-
+{retry_context}
 AVAILABLE TOOLS:
 - search_catalogue(query): searches approved product catalogue / technical specification documents.
 - lookup_price(query): searches approved pricing schedules.
