@@ -22,14 +22,35 @@ def verify_password(plain_password: str, hashed_password: Optional[str]) -> bool
 
 def create_access_token(subject: str, extra: Optional[dict] = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": subject, "exp": expire}
+    payload = {"sub": subject, "exp": expire, "type": "access"}
     if extra:
         payload.update(extra)
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+def create_refresh_token(subject: str) -> str:
+    # default to 7 days if not defined
+    days = getattr(settings, 'REFRESH_TOKEN_EXPIRE_DAYS', 7)
+    expire = datetime.now(timezone.utc) + timedelta(days=days)
+    payload = {"sub": subject, "exp": expire, "type": "refresh"}
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
 def decode_access_token(token: str) -> Optional[dict]:
     try:
-        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") == "refresh":
+            return None
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+
+def decode_refresh_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            return None
+        return payload
     except jwt.PyJWTError:
         return None
