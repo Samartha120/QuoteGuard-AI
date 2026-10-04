@@ -36,8 +36,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.state import AgentState
 from app.agents.requirement_agent import run_requirement_agent
 from app.agents.retrieval_agent import run_retrieval_agent
-from app.agents.planning_agent import run_planning_agent
-from app.agents.validation_agent import run_validation_agent
+from app.agents.validation_planning_agent import run_validation_planning_agent
 from app.agents.drafting_agent import run_drafting_agent
 from app.agents.critic_agent import run_critic_agent
 from app.tools.pricing_catalog import approved_grades
@@ -51,23 +50,22 @@ FINISH = "finish"
 ESCALATE = "escalate"
 
 # Pipeline order. Re-running an agent invalidates everything after it.
-AGENT_ORDER = ["extraction", "retrieval", "planning", "validation", "drafting", "critic"]
+AGENT_ORDER = ["extraction", "retrieval", "validation_planning", "drafting", "critic"]
 
 DEFAULT_AGENTS: Dict[str, Callable[[AgentState], AgentState]] = {
     "extraction": run_requirement_agent,
     "retrieval": run_retrieval_agent,
-    "planning": run_planning_agent,
-    "validation": run_validation_agent,
+    "validation_planning": run_validation_planning_agent,
     "drafting": run_drafting_agent,
     "critic": run_critic_agent,
 }
 
+# names from the approved proposal (plus the critic, which goes beyond it)
 AGENT_LABELS = {
-    "extraction": "Requirement Extraction Agent",
+    "extraction": "Requirement Analysis Agent",
     "retrieval": "Retrieval Agent",
-    "planning": "Planning & Strategy Agent",
-    "validation": "Validation Agent",
-    "drafting": "Drafting Agent",
+    "validation_planning": "Validation & Planning Agent",
+    "drafting": "Quotation & Communication Agent",
     "critic": "Critic Agent",
 }
 
@@ -119,10 +117,20 @@ def _critic_errors(state: AgentState, fix_by: Optional[str] = None, limit: int =
     return text + (f" (+{len(errs) - limit} more)" if len(errs) > limit else "")
 
 
+def _vp_issues(state: AgentState, resolver: Optional[str] = None, limit: int = 3) -> str:
+    issues = [i for i in state.validation_plan.get("issues", [])
+              if resolver is None or i.get("resolver") == resolver]
+    text = "; ".join(f"{i['item']}: {i['detail']}" for i in issues[:limit])
+    return text + (f" (+{len(issues) - limit} more)" if len(issues) > limit else "")
+
+
 def _after_critic(state: AgentState) -> List[Move]:
     """Where a reviewed draft goes next."""
     fb = state.critic_feedback
     if fb.get("verdict") == "approve":
+        if state.validation_plan.get("decision") == "escalate":
+            return [(ESCALATE, "draft is ready, but Validation & Planning found items only someone in "
+                               f"the company can decide: {_vp_issues(state, 'internal')}")]
         return [(FINISH, "critic approved the draft; ready for human approval")]
 
     if fb.get("unchanged_since_last_round"):
@@ -167,24 +175,25 @@ def legal_moves(state: AgentState) -> List[Move]:
 
     if not state.retrieved_evidence and tries.get("retrieval", 0) < MAX_RETRIEVALS:
         return [("retrieval", "retrieval found no evidence; search again"),
-                ("planning", "no evidence exists; let planning score it and abstain")]
+                ("validation_planning", "no evidence exists; let validation & planning decide")]
 
-    if "planning" not in done:
-        return run_or_escalate("planning", "evidence is in; score grounding confidence")
+    if "validation_planning" not in done:
+        return run_or_escalate("validation_planning", "evidence is in; check it is enough and plan the next step")
 
-    if "validation" not in done:
+    if "drafting" not in done:
+        decision = state.validation_plan.get("decision", "proceed")
         mismatch, weak = _weak_items(state)
-        reason = "confidence scored; verify each line item"
-        if mismatch:
-            reason += f" (grade not stocked for {mismatch}; searching again cannot fix that)"
         moves: List[Move] = []
         if weak and tries.get("retrieval", 0) < MAX_RETRIEVALS:
             moves.append(("retrieval", f"weak evidence for stocked item(s) {weak}; search again"))
-        return moves + run_or_escalate("validation", reason)
-
-    if "drafting" not in done:
-        path = "clarification request" if state.abstention_required else "priced quotation"
-        return run_or_escalate("drafting", f"items verified; draft the {path}")
+        if decision == "proceed":
+            reason = "validation & planning: proceed; draft the priced quotation"
+        else:
+            reason = (f"validation & planning: {decision}; draft the clarification request "
+                      f"covering: {_vp_issues(state)}")
+            if mismatch:
+                reason += f" (grade not stocked for {mismatch}; searching again cannot fix that)"
+        return moves + run_or_escalate("drafting", reason)
 
     if "critic" not in done:
         return run_or_escalate("critic", "draft written; review it before a human sees it")
@@ -212,6 +221,8 @@ def _summary(state: AgentState) -> dict:
         "grade_not_in_catalogue": mismatch,
         "weak_evidence_items": weak,
         "abstention_required": state.abstention_required,
+        "validation_plan": {"decision": state.validation_plan.get("decision"),
+                            "issues": _vp_issues(state) or None} if state.validation_plan else None,
         "critic": {k: state.critic_feedback.get(k) for k in ("verdict", "fix_by", "round")}
                   if state.critic_feedback else None,
         "critic_errors": _critic_errors(state) or None,
