@@ -9,22 +9,34 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
   user: AuthUser;
 }
 
-export { TOKEN_KEY, REFRESH_TOKEN_KEY } from './client';
+export interface OTPResponse {
+  message: string;
+  email: string;
+}
+
+
 
 export const authApi = {
-  login: async (email: string, password: string): Promise<LoginResponse> => {
-    const res = await api.post<LoginResponse>('/auth/login', { email, password });
+  login: async (email: string, password: string): Promise<OTPResponse> => {
+    const res = await api.post<OTPResponse>('/auth/login', { email, password });
     return res.data;
   },
 
-  register: async (name: string, email: string, password: string): Promise<LoginResponse> => {
-    const res = await api.post<LoginResponse>('/auth/register', { name, email, password });
+  verifyLoginOtp: async (email: string, otp: string): Promise<LoginResponse> => {
+    const res = await api.post<LoginResponse>('/auth/verify-login-otp', { email, otp });
+    return res.data;
+  },
+
+  register: async (name: string, email: string, password: string): Promise<OTPResponse> => {
+    const res = await api.post<OTPResponse>('/auth/register', { name, email, password });
+    return res.data;
+  },
+
+  verifyOtp: async (email: string, otp: string): Promise<LoginResponse> => {
+    const res = await api.post<LoginResponse>('/auth/verify-otp', { email, otp });
     return res.data;
   },
 
@@ -41,5 +53,9 @@ export const authApi = {
   updateProfile: async (name: string): Promise<AuthUser> => {
     const res = await api.patch<AuthUser>('/auth/me', { name });
     return res.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post('/auth/logout');
   },
 };

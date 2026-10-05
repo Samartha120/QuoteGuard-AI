@@ -23,6 +23,14 @@ def upload_rfq_file(
     file_path = save_uploaded_file(content, file.filename)
     raw_text = parse_document(file_path, file.filename)
     
+    # Check if document is related to an RFQ
+    content_lower = raw_text.lower()
+    if "rfq" not in content_lower and "request for quotation" not in content_lower and "valve" not in content_lower and "quote" not in content_lower:
+        raise HTTPException(
+            status_code=400,
+            detail="Document is not related to an RFQ. Please upload a valid RFQ document."
+        )
+
     rfq_in = RFQCreate(
         customer_name=customer_name,
         raw_text=raw_text,

@@ -32,7 +32,24 @@ class User(Base):
     hashed_password = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     
+    # OTP fields for 2FA / Login
+    login_otp = Column(String, nullable=True)
+    login_otp_expires_at = Column(DateTime, nullable=True)
+    login_attempts = Column(Integer, default=0)
+    
     company = relationship("Company", back_populates="users")
+
+class PendingUser(Base):
+    __tablename__ = "pending_users"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    email = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    hashed_otp = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0)
+    created_at = Column(DateTime, default=utc_now)
 
 class KnowledgeDocument(Base):
     __tablename__ = "knowledge_documents"
