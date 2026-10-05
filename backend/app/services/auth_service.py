@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
-from app.db.models import User, Company
+from app.db.models import User, Company, PendingUser
 from app.core.security import verify_password, hash_password
+from datetime import datetime, timedelta, timezone
+import secrets
+import string
 import uuid
 
 
@@ -39,6 +42,42 @@ def create_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+def get_pending_user_by_email(db: Session, email: str) -> PendingUser | None:
+    return db.query(PendingUser).filter(PendingUser.email == email).first()
+
+def create_pending_user(db: Session, name: str, email: str, password: str) -> tuple[PendingUser, str]:
+    # Generate 6 digit OTP
+    otp = ''.join(secrets.choice(string.digits) for _ in range(6))
+    hashed_otp = hash_password(otp)
+    hashed_pwd = hash_password(password)
+    
+    # Check if there's already a pending user for this email
+    pending = get_pending_user_by_email(db, email)
+    if pending:
+        db.delete(pending)
+        db.flush()
+
+    pending_user = PendingUser(
+        email=email.lower().strip(),
+        name=name.strip(),
+        hashed_password=hashed_pwd,
+        hashed_otp=hashed_otp,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        attempts=0
+    )
+    db.add(pending_user)
+    db.commit()
+    db.refresh(pending_user)
+    
+    return pending_user, otp
+
+def delete_pending_user(db: Session, email: str) -> None:
+    pending = get_pending_user_by_email(db, email)
+    if pending:
+        db.delete(pending)
+        db.commit()
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:

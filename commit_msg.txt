@@ -1,0 +1,20 @@
+feat(security): implement production-grade security architecture & OTP authentication
+
+- **Authentication Modernization**: 
+  - Migrated from localStorage token management to secure `HttpOnly`, `SameSite=Lax` cookies for both access and refresh tokens.
+  - Implemented automatic token refresh via Axios interceptors.
+  - Added secure backend `/logout` endpoint to invalidate session cookies.
+  
+- **Two-Factor OTP Flow**:
+  - Implemented 6-digit cryptographic OTP generation via `secrets` module for both Signup and Login workflows.
+  - Added `PendingUser` model to temporarily hold registrations until OTP verification.
+  - Updated `User` model to support transient login OTP and brute-force tracking.
+  - Built natively styled, accessible 6-digit OTP UI components inside `Signup.tsx` and `Login.tsx` with auto-focus and paste support.
+  
+- **API & Network Hardening**:
+  - Injected strict HTTP Security Headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security`, and `Content-Security-Policy`.
+  - Tightened CORS configuration to explicit HTTP methods and allowed origins.
+  - Removed explicit error details in authentication responses to prevent email enumeration attacks.
+  
+- **Documentation**:
+  - Added `SECURITY.md` detailing the new architecture and policies.

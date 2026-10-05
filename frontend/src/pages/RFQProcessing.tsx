@@ -34,8 +34,9 @@ export const RFQProcessing: React.FC = () => {
     try {
       const created = await createRFQ({ customer_name: customer, raw_text: text });
       await runPipelineFor(created.id);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.response?.data?.detail || e.message || "An error occurred");
     }
   };
 
@@ -43,8 +44,9 @@ export const RFQProcessing: React.FC = () => {
     try {
       const created = await rfqApi.uploadRFQFile(file, customer);
       await runPipelineFor(created.id);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.response?.data?.detail || e.message || "An error occurred");
     }
   };
 

@@ -40,3 +40,11 @@ class RefreshRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     name: str
+
+class VerifyOTPRequest(BaseModel):
+    email: str
+    otp: str
+
+class OTPResponse(BaseModel):
+    message: str
+    email: str

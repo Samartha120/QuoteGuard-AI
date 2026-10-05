@@ -17,6 +17,7 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
   
   const [inputMode, setInputMode] = useState<'text' | 'file'>('text');
   const [strictGrounding, setStrictGrounding] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   return (
     <div className="card animate-fade-in" style={{ padding: 0, marginBottom: '1.5rem', background: 'var(--bg-primary)', overflow: 'hidden' }}>
@@ -104,8 +105,7 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    onUploadFile(file, customerName);
-                    e.target.value = '';
+                    setSelectedFile(file);
                   }
                 }}
               />
@@ -122,11 +122,15 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
                 <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(0, 112, 243, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                   <UploadCloud size={28} style={{ color: 'var(--accent-blue)' }} />
                 </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Upload RFQ Document</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
+                  {selectedFile ? selectedFile.name : 'Upload RFQ Document'}
+                </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 1.5rem 0', textAlign: 'center' }}>
-                  Supports PDF, DOCX, MSG, TXT, MD, CSV up to 15MB. Text is extracted server-side and run through the pipeline.
+                  {selectedFile ? 'File ready for processing. Click Run Agentic Pipeline.' : 'Supports PDF, DOCX, MSG, TXT, MD, CSV up to 15MB. Text is extracted server-side and run through the pipeline.'}
                 </p>
-                <div className="btn btn-secondary" style={{ fontSize: '0.8rem', pointerEvents: 'none' }}>{loading ? 'Processing…' : 'Select File'}</div>
+                <div className="btn btn-secondary" style={{ fontSize: '0.8rem', pointerEvents: 'none' }}>
+                  {loading ? 'Processing…' : (selectedFile ? 'Change File' : 'Select File')}
+                </div>
               </label>
               </div>
             </div>
@@ -165,8 +169,16 @@ export const RFQUpload: React.FC<RFQUploadProps> = ({ onLoadSample1, onLoadSampl
 
           <button 
             className="btn btn-primary" 
-            onClick={() => onProcess(rawText, customerName)}
-            disabled={loading}
+            onClick={() => {
+              if (inputMode === 'text') {
+                onProcess(rawText, customerName);
+              } else if (inputMode === 'file' && selectedFile) {
+                onUploadFile(selectedFile, customerName);
+              } else {
+                alert("Please select a file first.");
+              }
+            }}
+            disabled={loading || (inputMode === 'file' && !selectedFile)}
             style={{ width: '100%', padding: '0.85rem', justifyContent: 'center', fontWeight: 600, fontSize: '0.9rem', marginBottom: '2rem', background: 'var(--text-main)', color: 'var(--bg-primary)' }}
           >
             {loading ? (
