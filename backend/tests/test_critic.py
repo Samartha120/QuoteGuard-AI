@@ -183,3 +183,14 @@ def test_unusable_llm_reply_falls_back_to_rules(monkeypatch):
 def test_quote_matching_ignores_case_and_punctuation():
     assert critic.quote_found("net 30 days, from date of invoice", "Net 30 Days from date of invoice.")
     assert not critic.quote_found("Net 60 Days", "Net 30 Days from date of invoice.")
+
+
+def test_llm_outage_falls_back_to_rules(monkeypatch):
+    from app.llm.client import LLMUnavailableError
+    monkeypatch.setattr(llm_client, "demo_mode", False)
+
+    def down(**kw):
+        raise LLMUnavailableError("provider down")
+    monkeypatch.setattr(llm_client, "generate_completion", down)
+    fb = run_critic_agent(make_state([priced_line()])).critic_feedback
+    assert fb["reviewed_by"] == ["rules"] and fb["verdict"] == "approve"

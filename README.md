@@ -255,12 +255,21 @@ Open <http://localhost:5173>. The dev server proxies `/api` to the backend on po
 | Variable | Meaning |
 |---|---|
 | `DEMO_MODE` | `true` = no LLM calls; extraction returns canned output for the two sample RFQs. Use `false` for real agent behaviour. |
-| `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` | Any OpenAI-compatible provider. Local Ollama: `ollama`, `http://localhost:11434/v1`, `llama3`. |
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` | Any OpenAI-compatible provider. Groq: `https://api.groq.com/openai/v1`, `openai/gpt-oss-120b`. Local Ollama: `ollama`, `http://localhost:11434/v1`, `llama3`. |
+| `OPENAI_FALLBACK_MODEL` | Second model to try when the first is rate-limited or failing (e.g. `qwen/qwen3.8-27b` on Groq). |
+| `LLM_TIMEOUT_SECONDS`, `LLM_MAX_RETRIES`, `LLM_CIRCUIT_SECONDS` | Per-call timeout (30), retries on temporary errors (2), and how long to skip the LLM after it fails (60). |
 | `ORCHESTRATOR_USE_LLM` | `true` (default) lets the supervisor LLM choose between legal moves. |
 | `GROUNDING_THRESHOLD` | Minimum confidence for a line to be quoted (default `0.80`). |
 
 Demo mode exists so the UI can be shown without a key. It is **not** used for execution traces — those
 come from runs with `DEMO_MODE=false`.
+
+**When the LLM fails** (`backend/app/llm/client.py`): temporary errors are retried with backoff, a
+rate-limited model hands over to the fallback model straight away, and if no model answers the client
+raises `LLMUnavailableError` rather than inventing output. The supervisor then retries the agent and
+escalates to a human with the error in the note; the critic and Validation & Planning carry on with
+their rule checks only. A circuit breaker skips the LLM for 60 s after a failure, so an outage costs
+about a second per RFQ instead of minutes of timeouts. Demo mode is never switched on by a failure.
 
 ## 10. Tests
 
@@ -269,11 +278,13 @@ cd backend
 python -m pytest -q
 ```
 
-8 test modules, 63 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
+9 test modules, 74 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
 routing (`test_orchestrator.py` — retries, escalation, re-extraction, re-search rules, LLM-vs-policy
 choice, the critic revision loop and the Validation & Planning decision), the Validation & Planning
 agent (`test_validation_planning.py`) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
-safeguards on LLM findings). Agent tests use fake agents or a fake LLM, so they need no API key.
+safeguards on LLM findings), and the LLM client's failure handling (`test_llm_client.py`). Agent tests
+use fake agents or a fake LLM, and `tests/conftest.py` forces demo mode, so the suite never calls a real
+provider even when `backend/.env` holds a key.
 
 ## 11. Evaluation
 
@@ -285,8 +296,8 @@ one that must abstain) and is being extended.
 
 ## 12. Known limitations
 
-- Drafting does not yet act on the critic's findings, so today a revision request ends in escalation
-  (the supervisor sees the draft did not change). Making drafting revise is in progress.
+- The Quotation & Communication agent revises on the critic's findings by adding clarification
+  questions; some of its standard questions still describe a stocked grade as a mismatch.
 - Retrieval calls a fixed set of tools today; letting it choose its own tools and queries is in review
   (PR #2). Agent names in some trace entries still use the older labels until each owner renames them.
 - The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup

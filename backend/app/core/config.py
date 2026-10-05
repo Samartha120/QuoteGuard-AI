@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
 
+    # Resilience (app/llm/client.py): per-call timeout, retries on temporary errors,
+    # a second model to try, and how long to skip the LLM after it has failed.
+    OPENAI_FALLBACK_MODEL: str = ""
+    LLM_TIMEOUT_SECONDS: float = 30.0
+    LLM_MAX_RETRIES: int = 2
+    LLM_CIRCUIT_SECONDS: float = 60.0
+
     # Let the supervisor LLM choose between legal next moves (app/agents/orchestrator.py).
     # Off, or in demo mode, it takes the first legal move instead.
     ORCHESTRATOR_USE_LLM: bool = True

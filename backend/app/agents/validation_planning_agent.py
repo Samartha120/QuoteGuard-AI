@@ -170,18 +170,40 @@ Return {{"issues": []}} if there is nothing beyond the rule findings."""
 AMBIGUITY_CHECK = """A customer's request for quotation says:
 "{rfq_quote}"
 
-Could a sales engineer quote this exactly from a product catalogue, or must they first
-ask the customer a question? A request that names the product and quantity, with a
-standard grade or rating, can be quoted.
+A reviewer claims: "{claim}"
+
+The supplier's approved catalogue / pricing entries for this item:
+{catalogue}
+
+Must the supplier ask the customer this BEFORE it can issue a correct, priced quotation?
+Answer false when the catalogue already fixes the detail (a standard grade, rating or
+set point), when it does not change the price, or when it is an internal check the
+supplier makes itself. Answer true only when the price or the product itself depends on
+the customer's answer.
 Reply with JSON only: {{"must_ask_customer": true or false, "why": "<one sentence>"}}"""
 
 
-def confirm_ambiguous(rfq_quote: str) -> Optional[bool]:
-    """Second, narrow look at one claimed ambiguity. None if the LLM gives no usable answer."""
+def _catalogue_context(state: AgentState, item: str) -> str:
+    """Catalogue / pricing text about one item: its approved row plus matching evidence."""
+    row = lookup_product("", item) or closest_product(item)
+    parts = []
+    if row:
+        parts.append(f"{row['code']} {row['name']}: grade {row['grade']}, INR {row['unit_price']}/unit, "
+                     f"MoQ {row['moq']}, lead time {row['lead_time_days']} days")
+        key = row["code"].lower()
+        parts += [e.get("content", "")[:500] for e in state.retrieved_evidence
+                  if key in e.get("content", "").lower()][:2]
+    return "\n".join(parts) or "(no catalogue entry found)"
+
+
+def confirm_ambiguous(rfq_quote: str, claim: str = "", catalogue: str = "(not given)") -> Optional[bool]:
+    """Second, narrow look at one claimed ambiguity or gap, with the catalogue in view.
+    None if the LLM gives no usable answer."""
     try:
         raw = llm_client.generate_completion(
-            system_prompt="You judge whether one request is specific enough to quote. Answer with JSON only.",
-            user_prompt=AMBIGUITY_CHECK.format(rfq_quote=rfq_quote),
+            system_prompt="You judge whether a quotation can be priced without asking the customer. "
+                          "Answer with JSON only.",
+            user_prompt=AMBIGUITY_CHECK.format(rfq_quote=rfq_quote, claim=claim, catalogue=catalogue),
         )
     except Exception:  # pragma: no cover
         return None
@@ -243,8 +265,9 @@ def llm_issues(state: AgentState, rules: List[Dict[str, Any]]) -> Optional[List[
                 drop = "evidence quote not found"
             elif confirm_conflict(i["rfq_quote"], i["evidence_quote"]) is False:
                 drop = "second check found no conflict"
-        elif i["kind"] == "ambiguous" and confirm_ambiguous(i["rfq_quote"]) is False:
-            drop = "second check found the request specific enough"
+        elif i["kind"] in ("ambiguous", "missing") and confirm_ambiguous(
+                i["rfq_quote"], issue["detail"], _catalogue_context(state, issue["item"])) is False:
+            drop = "second check: can be quoted without asking"
         if drop:
             logger.info(f"{AGENT_NAME}: dropped LLM issue ({drop}): {issue['detail']!r}")
             continue
