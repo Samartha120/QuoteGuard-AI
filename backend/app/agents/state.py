@@ -35,20 +35,11 @@ class AgentState(BaseModel):
     # Execution Trace Audit Trail
     agent_traces: List[Dict[str, Any]] = Field(default_factory=list)
 
-<<<<<<< HEAD
     # Per-tool-call log from the Retrieval Agent's LLM-selected plan
     # (which tool, what query, how many results) — kept separate from
     # agent_traces so the one-entry-per-stage trace count is unaffected.
     tool_call_log: List[Dict[str, Any]] = Field(default_factory=list)
 
-    # Retry/handoff messages addressed to an agent, in order, e.g.
-    #   {"step", "from", "to", "type": task|result|error, "content"}
-    # Currently only populated in tests / a future retry mechanism; the
-    # orchestrator/critic agents that originally wrote these were reverted
-    # from main, but the Retrieval Agent still reads this list to pick up
-    # a retry reason if one is ever placed here.
-    messages: List[Dict[str, Any]] = Field(default_factory=list)
-=======
     # Orchestrator (supervisor) bookkeeping — see app/agents/orchestrator.py
     # messages: every handoff between the supervisor and an agent, in order
     #   {"step", "from", "to", "type": task|result|error, "content"}
@@ -59,4 +50,3 @@ class AgentState(BaseModel):
     attempts: Dict[str, int] = Field(default_factory=dict)
     next_agent: Optional[str] = None
     step: int = 0
->>>>>>> origin/main
