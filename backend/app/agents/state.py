@@ -35,6 +35,11 @@ class AgentState(BaseModel):
     # Execution Trace Audit Trail
     agent_traces: List[Dict[str, Any]] = Field(default_factory=list)
 
+    # Per-tool-call log from the Retrieval Agent's LLM-selected plan
+    # (which tool, what query, how many results) — kept separate from
+    # agent_traces so the one-entry-per-stage trace count is unaffected.
+    tool_call_log: List[Dict[str, Any]] = Field(default_factory=list)
+
     # Orchestrator (supervisor) bookkeeping — see app/agents/orchestrator.py
     # messages: every handoff between the supervisor and an agent, in order
     #   {"step", "from", "to", "type": task|result|error, "content"}

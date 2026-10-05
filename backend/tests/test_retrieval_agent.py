@@ -1,0 +1,153 @@
+"""Tests for the Retrieval Agent's own logic (tool selection, re-search on
+retry, the forced policy-lookup guard, and graceful handling of a failing
+tool) — using fake tools and a fake LLM response so these run without a real
+vector store or LLM, matching how test_orchestrator.py tests routing with
+fake agents."""
+import json
+from unittest.mock import patch
+
+import pytest
+
+from app.agents import retrieval_agent
+from app.agents.retrieval_agent import run_retrieval_agent
+from app.agents.state import AgentState
+
+
+def _fake_plan(needs_policy_lookup, item_plans):
+    return json.dumps({"needs_policy_lookup": needs_policy_lookup, "item_plans": item_plans})
+
+
+def _state(line_items, payment_terms=None, delivery_terms=None):
+    return AgentState(
+        rfq_id="t",
+        raw_text="test",
+        extracted_requirements={
+            "line_items": line_items,
+            "payment_terms": payment_terms,
+            "delivery_terms": delivery_terms,
+        },
+    )
+
+
+def test_calls_only_the_tools_the_plan_selects():
+    """The agent should execute exactly the LLM's plan, not every tool for
+    every item (the fixed-loop behavior this replaced)."""
+    plan = _fake_plan(
+        needs_policy_lookup=False,
+        item_plans=[{"product_name": "IV-200", "calls": [{"tool": "search_catalogue", "query": "IV-200"}]}],
+    )
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}])
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion", return_value=plan), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": lambda q: [{"chunk_id": "c1", "content": f"match for {q}"}],
+             "lookup_price": lambda q: [{"chunk_id": "c2", "content": f"price for {q}"}],
+         }):
+        result = run_retrieval_agent(state)
+
+    tools_called = [c["tool"] for c in result.tool_call_log if "tool" in c]
+    assert tools_called == ["search_catalogue"]
+    assert "lookup_price" not in tools_called
+
+
+def test_forces_policy_lookup_when_llm_skips_it_despite_terms_present():
+    """Reproduces the reported bug: the LLM says needs_policy_lookup=False
+    even though payment_terms is set. The agent must call the policy tool
+    anyway and log that it overrode the LLM's decision."""
+    plan = _fake_plan(needs_policy_lookup=False, item_plans=[
+        {"product_name": "IV-200", "calls": [{"tool": "search_catalogue", "query": "IV-200"}]}
+    ])
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}],
+                    payment_terms="Net 30 days")
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion", return_value=plan), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": lambda q: [],
+         }), \
+         patch("app.agents.retrieval_agent.get_delivery_policy", return_value=[{"chunk_id": "p1", "content": "policy"}]) as mock_policy:
+        result = run_retrieval_agent(state)
+
+    mock_policy.assert_called_once()
+    forced = [c for c in result.tool_call_log if c.get("event") == "POLICY_LOOKUP_FORCED"]
+    assert len(forced) == 1
+
+
+def test_failing_tool_is_logged_not_raised():
+    """A tool that raises should not crash the agent; it should be logged
+    to tool_call_log with the error, and the rest of the plan still runs."""
+    plan = _fake_plan(needs_policy_lookup=False, item_plans=[
+        {"product_name": "IV-200", "calls": [
+            {"tool": "search_catalogue", "query": "IV-200"},
+            {"tool": "lookup_price", "query": "IV-200"},
+        ]}
+    ])
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}])
+
+    def broken_search(q):
+        raise ConnectionError("vector store unreachable")
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion", return_value=plan), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": broken_search,
+             "lookup_price": lambda q: [{"chunk_id": "c2", "content": "price"}],
+         }):
+        result = run_retrieval_agent(state)  # must not raise
+
+    errored = [c for c in result.tool_call_log if "error" in c]
+    assert len(errored) == 1
+    assert "ConnectionError" in errored[0]["error"]
+    # the second (working) tool call should still have gone through
+    succeeded = [c for c in result.tool_call_log if c.get("tool") == "lookup_price" and "error" not in c]
+    assert len(succeeded) == 1
+
+
+def test_resends_retry_reason_into_the_planning_prompt():
+    """When the supervisor/critic has sent retrieval back (a 'task' message
+    addressed to retrieval in state.messages), the agent must put that
+    reason into the prompt it sends the LLM, so a second pass can search
+    differently instead of repeating the same query."""
+    plan = _fake_plan(needs_policy_lookup=False, item_plans=[])
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}])
+    state.messages.append({
+        "step": 1, "from": "supervisor", "to": "retrieval", "type": "task",
+        "content": "weak evidence for stocked item(s) [IV-200]; search again",
+    })
+
+    captured_prompts = []
+
+    def capture_and_return(system_prompt, user_prompt):
+        captured_prompts.append(user_prompt)
+        return plan
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion", side_effect=capture_and_return):
+        run_retrieval_agent(state)
+
+    assert len(captured_prompts) == 1
+    assert "weak evidence for stocked item(s) [IV-200]; search again" in captured_prompts[0]
+
+
+def test_tool_call_count_excludes_earlier_runs():
+    """tool_call_log persists across re-runs of the same AgentState (the
+    supervisor re-invokes the agent in place). The trace summary for THIS
+    run must count only calls made in this run, not earlier attempts."""
+    plan = _fake_plan(needs_policy_lookup=False, item_plans=[
+        {"product_name": "IV-200", "calls": [{"tool": "search_catalogue", "query": "IV-200"}]}
+    ])
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}])
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion", return_value=plan), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": lambda q: [{"chunk_id": "c1", "content": "m"}],
+         }):
+        # First run
+        state = run_retrieval_agent(state)
+        assert "1 LLM-selected tool call(s) this run" in state.agent_traces[-1]["output_summary"]
+
+        # Second run (simulating a supervisor retry) on the SAME state object,
+        # so tool_call_log now carries over the first run's entry too.
+        state.messages.append({"step": 2, "from": "supervisor", "to": "retrieval",
+                               "type": "task", "content": "search again"})
+        state = run_retrieval_agent(state)
+
+    assert len(state.tool_call_log) == 2  # both runs' calls accumulated
+    assert "1 LLM-selected tool call(s) this run" in state.agent_traces[-1]["output_summary"]
