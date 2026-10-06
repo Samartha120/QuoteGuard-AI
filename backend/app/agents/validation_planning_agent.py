@@ -108,7 +108,10 @@ def rule_issues(state: AgentState) -> List[Dict[str, Any]]:
                                      "decide whether to offer a custom or alternative item", "internal"))
             continue
         if not isinstance(qty, (int, float)) or qty <= 0:
-            issues.append(_issue(name, "missing", "no valid quantity in the RFQ", "customer"))
+            notes = [n.split(": ", 1)[1] for n in reqs.get("normalization_notes", [])
+                     if n.startswith(f"{name}: ")]
+            issues.append(_issue(name, "missing", f"no usable quantity ({notes[0]})" if notes
+                                 else "no valid quantity in the RFQ", "customer"))
         elif row.get("moq") and qty < row["moq"]:
             issues.append(_issue(name, "conflicting",
                                  f"quantity {qty} is below the minimum order of {row['moq']}", "customer"))
@@ -175,12 +178,13 @@ A reviewer claims: "{claim}"
 The supplier's approved catalogue / pricing entries for this item:
 {catalogue}
 
-Must the supplier ask the customer this BEFORE it can issue a correct, priced quotation?
-Answer false when the catalogue already fixes the detail (a standard grade, rating or
-set point), when it does not change the price, or when it is an internal check the
-supplier makes itself. Answer true only when the price or the product itself depends on
-the customer's answer.
-Reply with JSON only: {{"must_ask_customer": true or false, "why": "<one sentence>"}}"""
+Does this block a correct, priced quotation?
+Answer true only when the PRICE depends on the customer's answer (different catalogue
+products or prices for different answers), or the product cannot be identified at all.
+Answer false when the catalogue already fixes the detail, when every option has the same
+approved price (the customer can confirm the detail on the purchase order), or when it is
+an internal check the supplier makes itself.
+Reply with JSON only: {{"blocks_quote": true or false, "why": "<one sentence>"}}"""
 
 
 def _catalogue_context(state: AgentState, item: str) -> str:
@@ -197,8 +201,8 @@ def _catalogue_context(state: AgentState, item: str) -> str:
 
 
 def confirm_ambiguous(rfq_quote: str, claim: str = "", catalogue: str = "(not given)") -> Optional[bool]:
-    """Second, narrow look at one claimed ambiguity or gap, with the catalogue in view.
-    None if the LLM gives no usable answer."""
+    """Second, narrow look at one claimed ambiguity or gap, with the catalogue in view:
+    does it block a correctly priced quote? None if the LLM gives no usable answer."""
     try:
         raw = llm_client.generate_completion(
             system_prompt="You judge whether a quotation can be priced without asking the customer. "
@@ -209,8 +213,15 @@ def confirm_ambiguous(rfq_quote: str, claim: str = "", catalogue: str = "(not gi
         return None
     if llm_client.demo_mode:
         return None
-    answer = parse_reply(raw).get("must_ask_customer")
+    answer = parse_reply(raw).get("blocks_quote")
     return answer if isinstance(answer, bool) else None
+
+
+def _single_price_product(item: str) -> bool:
+    """True when the item is a catalogue product. The approved price list holds exactly one
+    price per product code, so once product, quantity and grade are settled (all checked by
+    rules) nothing else the customer could answer changes the price."""
+    return bool(lookup_product("", item) or closest_product(item))
 
 
 def _repeats_rule(issue: Dict[str, Any], rules: List[Dict[str, Any]]) -> bool:
@@ -222,8 +233,11 @@ def _repeats_rule(issue: Dict[str, Any], rules: List[Dict[str, Any]]) -> bool:
     return False
 
 
-def llm_issues(state: AgentState, rules: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
-    """LLM findings that survive the quote checks, or None when no LLM is available."""
+def llm_issues(state: AgentState, rules: List[Dict[str, Any]],
+               advisories: Optional[List[Dict[str, Any]]] = None) -> Optional[List[Dict[str, Any]]]:
+    """LLM findings that survive the quote checks, or None when no LLM is available.
+    Real but non-blocking points (e.g. a port size when every size has the same price)
+    are appended to `advisories` instead: the quote goes ahead and they are noted."""
     if llm_client.demo_mode:
         return None
     evidence = [e.get("content", "")[:500] for e in state.retrieved_evidence[:6]] + policy_texts(state)
@@ -265,9 +279,17 @@ def llm_issues(state: AgentState, rules: List[Dict[str, Any]]) -> Optional[List[
                 drop = "evidence quote not found"
             elif confirm_conflict(i["rfq_quote"], i["evidence_quote"]) is False:
                 drop = "second check found no conflict"
+        elif i["kind"] in ("ambiguous", "missing") and _single_price_product(issue["item"]):
+            # The price list has one price per product, and the things that do change the
+            # price (product, quantity, grade) are already checked by the rules above. So any
+            # other detail (port size, end connection...) cannot change the price.
+            drop = "catalogued product with a single approved price"
         elif i["kind"] in ("ambiguous", "missing") and confirm_ambiguous(
                 i["rfq_quote"], issue["detail"], _catalogue_context(state, issue["item"])) is False:
-            drop = "second check: can be quoted without asking"
+            drop = "second check: does not block a priced quote"
+        if drop and drop.startswith(("catalogued", "second check: does not")) and advisories is not None:
+            advisories.append({"item": issue["item"], "detail": issue["detail"],
+                               "note": "confirm with the customer on the purchase order"})
         if drop:
             logger.info(f"{AGENT_NAME}: dropped LLM issue ({drop}): {issue['detail']!r}")
             continue
@@ -300,7 +322,8 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
     # Steps 2 and 3
     issues = rule_issues(state)
     reviewed_by = ["rules"]
-    found = llm_issues(state, issues)
+    advisories: List[Dict[str, Any]] = []
+    found = llm_issues(state, issues, advisories)
     if found is not None:
         reviewed_by.append("llm")
         issues += found
@@ -310,7 +333,8 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
         state.abstention_required = True
         state.grounded_status = "ABSTAINED"
 
-    state.validation_plan = {"decision": decision, "issues": issues, "reviewed_by": reviewed_by}
+    state.validation_plan = {"decision": decision, "issues": issues, "advisories": advisories,
+                             "reviewed_by": reviewed_by}
 
     head = "; ".join(f"{i['item']}: {i['detail']}" for i in issues[:3])
     elapsed = int((time.time() - start) * 1000)
