@@ -6,7 +6,8 @@
     "expected_status": "grounded",
     "expected_line_items": 2,
     "expected_abstentions": 0,
-    "expected_confidence": 0.95
+    "expected_confidence": 0.95,
+    "expected_decision": "proceed"
   },
   {
     "eval_id": "eval_002",
@@ -15,7 +16,82 @@
     "expected_status": "clarification_required",
     "expected_line_items": 1,
     "expected_abstentions": 2,
-    "unsupported_fields": ["IV-200.material_SS316", "payment_terms_90_days"],
-    "expected_confidence": 0.45
+    "unsupported_fields": [
+      "IV-200.material_SS316",
+      "payment_terms_90_days"
+    ],
+    "expected_confidence": 0.45,
+    "expected_decision": "escalate"
+  },
+  {
+    "eval_id": "eval_003",
+    "rfq_file": "demo_rfq_3_bulk_discount.txt",
+    "customer": "Narmada Pipeline Projects Pvt. Ltd.",
+    "expected_status": "grounded",
+    "expected_decision": "proceed",
+    "expected_line_items": 2,
+    "expected_abstentions": 0,
+    "expected_unit_prices": {
+      "IV-200": 4275.0,
+      "FP-50": 765.0
+    },
+    "notes": "Both items cross the bulk-discount thresholds (IV-200 >= 50 units: 5%; FP-50 >= 200 units: 10%)."
+  },
+  {
+    "eval_id": "eval_004",
+    "rfq_file": "demo_rfq_4_vague_quantity.txt",
+    "customer": "Kaveri Pumps Pvt Ltd",
+    "expected_status": "clarification_required",
+    "expected_decision": "clarify",
+    "expected_line_items": 2,
+    "unsupported_fields": [
+      "PV-100.quantity_range"
+    ],
+    "notes": "Quantity is a range ('around 30 to 40') and the product is named loosely; the customer must confirm."
+  },
+  {
+    "eval_id": "eval_005",
+    "rfq_file": "demo_rfq_5_unknown_product.txt",
+    "customer": "Deccan Sugar Mills Ltd.",
+    "expected_status": "clarification_required",
+    "expected_decision": "escalate",
+    "expected_line_items": 2,
+    "unsupported_fields": [
+      "BV-150.not_in_catalogue"
+    ],
+    "notes": "Butterfly Valve BV-150 is not in the approved catalogue; sales must decide on an alternative."
+  },
+  {
+    "eval_id": "eval_006",
+    "rfq_file": "demo_rfq_6_below_moq.txt",
+    "customer": "Shree Fabricators",
+    "expected_status": "clarification_required",
+    "expected_decision": "clarify",
+    "expected_line_items": 1,
+    "unsupported_fields": [
+      "FP-50.below_moq"
+    ],
+    "notes": "5 units is below FP-50's minimum order of 20; the customer must accept the MoQ or withdraw."
+  },
+  {
+    "eval_id": "eval_007",
+    "rfq_file": "demo_rfq_7_extended_credit.txt",
+    "customer": "Konkan Chemicals Ltd.",
+    "expected_status": "clarification_required",
+    "expected_decision": "escalate",
+    "expected_line_items": 1,
+    "unsupported_fields": [
+      "payment_terms_60_days"
+    ],
+    "notes": "Net 60 exceeds the Net 30 policy; finance must approve before quoting."
+  },
+  {
+    "eval_id": "eval_008",
+    "rfq_file": "demo_rfq_8_general_enquiry.txt",
+    "customer": "Orbit Infra Developers",
+    "expected_status": "clarification_required",
+    "expected_decision": "escalate",
+    "expected_line_items": 0,
+    "notes": "Not an RFQ: no products or quantities. Nothing must be priced; a person should reply."
   }
 ]

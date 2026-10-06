@@ -6,11 +6,23 @@ from app.schemas.rfq import RFQCreate, RFQResponse
 from app.services.rfq_service import create_rfq, get_all_rfqs, get_rfq_by_id, process_rfq_workflow
 from app.utils.file_utils import save_uploaded_file
 from app.rag.parser import parse_document
+from app.core.input_validation import (InputError, validate_customer_name, validate_parsed_upload,
+                                       validate_rfq_text, validate_upload)
+from app.core.logging import logger
 
 router = APIRouter()
 
+def _bad_input(e: InputError) -> HTTPException:
+    return HTTPException(status_code=e.status_code, detail=str(e))
+
+
 @router.post("", response_model=RFQResponse, status_code=status.HTTP_201_CREATED)
 def create_new_rfq(rfq_in: RFQCreate, db: Session = Depends(get_db)):
+    try:
+        rfq_in.customer_name = validate_customer_name(rfq_in.customer_name)
+        rfq_in.raw_text = validate_rfq_text(rfq_in.raw_text)
+    except InputError as e:
+        raise _bad_input(e)
     return create_rfq(db=db, rfq_in=rfq_in)
 
 @router.post("/upload", response_model=RFQResponse, status_code=status.HTTP_201_CREATED)
@@ -20,8 +32,17 @@ def upload_rfq_file(
     db: Session = Depends(get_db)
 ):
     content = file.file.read()
+    try:
+        customer_name = validate_customer_name(customer_name)
+        validate_upload(file.filename, content)
+    except InputError as e:
+        raise _bad_input(e)
     file_path = save_uploaded_file(content, file.filename)
     raw_text = parse_document(file_path, file.filename)
+    try:
+        raw_text = validate_parsed_upload(raw_text, file.filename)
+    except InputError as e:
+        raise _bad_input(e)
     
     # Check if document is related to an RFQ
     content_lower = raw_text.lower()
@@ -56,5 +77,15 @@ def run_rfq_process(rfq_id: str, db: Session = Depends(get_db)):
         return rfq
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent workflow error: {str(e)}")
+    except Exception:
+        # Agent failures are handled inside the supervisor (retry, escalate), so reaching
+        # here means something outside the agents broke. Don't leave the RFQ stuck in
+        # PROCESSING, and don't show internals to the user; the log has the details.
+        logger.exception(f"Processing RFQ {rfq_id} failed")
+        db.rollback()
+        rfq = get_rfq_by_id(db=db, rfq_id=rfq_id)
+        if rfq is not None:
+            rfq.status = "FAILED"
+            db.commit()
+        raise HTTPException(status_code=500,
+                            detail="Processing failed unexpectedly. The RFQ is marked FAILED; please try again.")
