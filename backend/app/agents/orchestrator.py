@@ -40,6 +40,7 @@ from app.agents.validation_planning_agent import run_validation_planning_agent
 from app.agents.drafting_agent import run_drafting_agent
 from app.agents.critic_agent import run_critic_agent
 from app.tools.pricing_catalog import approved_grades
+from app.core.input_validation import normalize_requirements
 from app.llm.client import llm_client
 from app.llm.structured_output import clean_and_parse_json
 from app.core.config import settings
@@ -52,8 +53,20 @@ ESCALATE = "escalate"
 # Pipeline order. Re-running an agent invalidates everything after it.
 AGENT_ORDER = ["extraction", "retrieval", "validation_planning", "drafting", "critic"]
 
+def extract_and_normalize(state: AgentState) -> AgentState:
+    """Run Requirement Analysis, then clean its output before any other agent sees it:
+    quantities given as text or ranges, non-positive quantities, and products the RFQ
+    never mentions (an LLM can invent them, especially on gibberish input)."""
+    state = run_requirement_agent(state)
+    state.extracted_requirements, notes = normalize_requirements(state.extracted_requirements, state.raw_text)
+    if notes:
+        state.messages.append({"step": state.step, "from": SUPERVISOR, "to": "extraction",
+                               "type": "check", "content": "; ".join(notes)})
+    return state
+
+
 DEFAULT_AGENTS: Dict[str, Callable[[AgentState], AgentState]] = {
-    "extraction": run_requirement_agent,
+    "extraction": extract_and_normalize,
     "retrieval": run_retrieval_agent,
     "validation_planning": run_validation_planning_agent,
     "drafting": run_drafting_agent,
