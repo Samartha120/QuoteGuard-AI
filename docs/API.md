@@ -27,7 +27,7 @@
   - **Response**: Detailed RFQ record including raw text, extracted requirements, retrieved evidence, and workflow run trace.
 
 - **`POST /rfqs/{id}/process`**
-  - **Response**: Triggers the 5-stage agent workflow (`RequirementExtraction` -> `Retrieval` -> `Planning` -> `Validation` -> `Drafting`).
+  - **Response**: Triggers the supervisor-routed agent graph (Requirement Analysis -> Retrieval -> Validation & Planning -> Quotation & Communication -> Critic, routed dynamically; see `docs/AGENT_WORKFLOW.md`).
 
 ---
 
