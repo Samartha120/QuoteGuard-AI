@@ -100,11 +100,22 @@ VAGUE = {"item": "IV-200", "kind": "ambiguous", "detail": "end connection type n
          "rfq_quote": "Industrial Valve IV-200, 20 units", "resolver": "customer"}
 
 
+TERMS_GAP = {"item": "delivery", "kind": "ambiguous", "detail": "no delivery date or deadline given",
+             "rfq_quote": "Delivery: ex-works Pune is fine", "resolver": "customer"}
+
+
 def test_verified_llm_finding_is_used(monkeypatch):
-    fake_llm(monkeypatch, [VAGUE])
+    fake_llm(monkeypatch, [TERMS_GAP])
     s = vpa.run_validation_planning_agent(make_state())
     assert s.validation_plan["reviewed_by"] == ["rules", "llm"]
     assert s.validation_plan["decision"] == "clarify"
+
+
+def test_spec_detail_on_a_single_price_product_is_only_an_advisory(monkeypatch):
+    fake_llm(monkeypatch, [VAGUE])   # "end connection type not specified" for IV-200
+    plan = vpa.run_validation_planning_agent(make_state()).validation_plan
+    assert plan["decision"] == "proceed"
+    assert [a["item"] for a in plan["advisories"]] == ["IV-200"]
 
 
 def test_llm_finding_with_invented_rfq_quote_is_dropped(monkeypatch):
@@ -139,11 +150,13 @@ def test_ambiguity_rejected_by_second_check_is_dropped(monkeypatch):
     monkeypatch.setattr(llm_client, "demo_mode", False)
 
     def reply(system_prompt, user_prompt):
-        if "must_ask_customer" in user_prompt:
-            return json.dumps({"must_ask_customer": False, "why": "product and quantity are given"})
-        return json.dumps({"issues": [VAGUE]})
+        if "blocks_quote" in user_prompt:
+            return json.dumps({"blocks_quote": False, "why": "an internal check"})
+        return json.dumps({"issues": [TERMS_GAP]})
     monkeypatch.setattr(llm_client, "generate_completion", reply)
-    assert vpa.run_validation_planning_agent(make_state()).validation_plan["decision"] == "proceed"
+    plan = vpa.run_validation_planning_agent(make_state()).validation_plan
+    assert plan["decision"] == "proceed"
+    assert plan["advisories"] and plan["advisories"][0]["detail"] == TERMS_GAP["detail"]
 
 
 def test_conflict_rejected_by_second_check_is_dropped(monkeypatch):
