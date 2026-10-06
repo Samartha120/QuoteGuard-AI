@@ -192,6 +192,24 @@ run log. Abridged real output for demo RFQ 1 (local run, llama3):
 }
 ```
 
+**Bad input** (`backend/app/core/input_validation.py`) is stopped before any LLM call, with a message
+that says what to fix:
+
+| Input | Response |
+|---|---|
+| Empty text, fewer than 5 words, or text that is not readable language (keyboard mash, binary) | 422 with the reason |
+| RFQ longer than 20,000 characters | 413 |
+| File type other than PDF, DOCX, TXT, MD, CSV | 415 |
+| Empty file, or file over 5 MB | 422 / 413 |
+| PDF with no extractable text (a scan) | 422, suggesting a text PDF or pasting the text |
+| Processing fails outside the agents | 500 with a plain message; the RFQ is marked `FAILED`, internals stay in the log |
+
+After the Requirement Analysis Agent runs, the supervisor cleans its output before any other agent
+sees it: quantities given as text are converted ("30 units" → 30); ranges ("around 30 to 40"),
+zero, negative, fractional or implausibly large quantities are cleared and noted, so Validation &
+Planning asks the customer; and products the RFQ never mentions are dropped (an LLM can invent them,
+especially on text that is not really an RFQ).
+
 ## 7. Tech stack
 
 | Layer | Technology |
@@ -278,11 +296,12 @@ cd backend
 python -m pytest -q
 ```
 
-9 test modules, 74 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
+10 test modules, 114 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
 routing (`test_orchestrator.py` — retries, escalation, re-extraction, re-search rules, LLM-vs-policy
 choice, the critic revision loop and the Validation & Planning decision), the Validation & Planning
 agent (`test_validation_planning.py`) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
-safeguards on LLM findings), and the LLM client's failure handling (`test_llm_client.py`). Agent tests
+safeguards on LLM findings), the LLM client's failure handling (`test_llm_client.py`) and bad input
+end to end, including the RFQ API itself (`test_input_validation.py`). Agent tests
 use fake agents or a fake LLM, and `tests/conftest.py` forces demo mode, so the suite never calls a real
 provider even when `backend/.env` holds a key.
 
@@ -291,15 +310,31 @@ provider even when `backend/.env` holds a key.
 `POST /api/evaluation/run` (or the Evaluation page) runs every case in
 `data/evaluation/test_dataset.json` through the agents and records grounding rate, hallucination rate,
 abstention accuracy, extraction accuracy, retrieval precision, average latency and estimated API cost.
-The figures are computed on each run, not fixed. The benchmark currently has two cases (one quotable,
-one that must abstain) and is being extended.
+The figures are computed on each run, not fixed. The benchmark has eight cases, each with the expected
+final status and the expected Validation & Planning decision:
+
+| Case | Situation | Expected |
+|---|---|---|
+| eval_001 | Complete RFQ, credit-approved customer | proceed → priced quote |
+| eval_002 | SS316 grade, 90-day credit, 3-day doorstep delivery | escalate |
+| eval_003 | Bulk order crossing both discount thresholds | proceed, IV-200 at ₹4,275 and FP-50 at ₹765 |
+| eval_004 | Loosely named product, quantity "around 30 to 40" | clarify |
+| eval_005 | Product not in the catalogue (butterfly valve) | escalate |
+| eval_006 | 5 units against a minimum order of 20 | clarify |
+| eval_007 | Net 60 credit | escalate (finance) |
+| eval_008 | General enquiry with no products | escalate, nothing priced |
+
+On Groq's free tier, running all eight back to back can exhaust the per-minute token quota; affected
+cases then escalate with "LLM unavailable" (by design). Leave a minute between full runs.
 
 ## 12. Known limitations
 
 - The Quotation & Communication agent revises on the critic's findings by adding clarification
   questions; some of its standard questions still describe a stocked grade as a mismatch.
-- Retrieval calls a fixed set of tools today; letting it choose its own tools and queries is in review
-  (PR #2). Agent names in some trace entries still use the older labels until each owner renames them.
+- The Requirement Analysis Agent's trace entries still use its older label ("Requirement Extraction
+  Agent").
+- Points the Validation & Planning Agent judges real but non-blocking (e.g. a port size, when every
+  size has the same price) are kept as `advisories`; the quotation does not show them yet.
 - The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup
   above until the Docker setup is fixed.
 - The knowledge base is loaded when the server starts; scripts that skip startup see an empty store.
