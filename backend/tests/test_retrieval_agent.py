@@ -151,3 +151,65 @@ def test_tool_call_count_excludes_earlier_runs():
 
     assert len(state.tool_call_log) == 2  # both runs' calls accumulated
     assert "1 LLM-selected tool call(s) this run" in state.agent_traces[-1]["output_summary"]
+
+
+def test_falls_back_to_default_plan_when_llm_plan_is_unparseable():
+    """When the LLM's planning response isn't usable JSON with item_plans
+    (clean_and_parse_json returns {"error": ..., "raw": ...}), the agent must
+    not fail the whole RFQ: it falls back to calling both tools for every
+    line item, and logs a FALLBACK event so the degradation is visible in
+    the trace rather than silent."""
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}])
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion", return_value="not valid json at all"), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": lambda q: [{"chunk_id": "c1", "content": f"catalogue match for {q}"}],
+             "lookup_price": lambda q: [{"chunk_id": "c2", "content": f"price for {q}"}],
+         }):
+        result = run_retrieval_agent(state)
+
+    fallback_events = [c for c in result.tool_call_log if c.get("event") == "FALLBACK"]
+    assert len(fallback_events) == 1
+    assert "unparseable" in fallback_events[0]["reason"] or "empty" in fallback_events[0]["reason"]
+
+    # the default plan calls both tools, using the product name + code as the query
+    tools_called = [c["tool"] for c in result.tool_call_log if "tool" in c]
+    assert "search_catalogue" in tools_called
+    assert "lookup_price" in tools_called
+    assert len(result.retrieved_evidence) == 2  # one chunk from each tool call
+
+
+def test_deduplicates_evidence_by_chunk_id_across_calls():
+    """Different tool calls (e.g. two line items, or a retry) can return
+    overlapping evidence chunks. state.retrieved_evidence must contain each
+    chunk_id only once, even though every individual tool call is still
+    logged in tool_call_log."""
+    plan = _fake_plan(needs_policy_lookup=False, item_plans=[
+        {"product_name": "IV-200", "calls": [
+            {"tool": "search_catalogue", "query": "IV-200"},
+            {"tool": "lookup_price", "query": "IV-200"},
+        ]},
+        {"product_name": "PV-100", "calls": [
+            {"tool": "search_catalogue", "query": "PV-100"},
+        ]},
+    ])
+    state = _state([
+        {"product_name": "Industrial Valve", "product_code": "IV-200"},
+        {"product_name": "Pressure Relief Valve", "product_code": "PV-100"},
+    ])
+
+    # search_catalogue returns the SAME chunk ("shared") for both queries, simulating
+    # two different searches landing on overlapping catalogue content.
+    with patch.object(retrieval_agent.llm_client, "generate_completion", return_value=plan), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": lambda q: [{"chunk_id": "shared", "content": "catalogue page"}],
+             "lookup_price": lambda q: [{"chunk_id": "price-1", "content": "price row"}],
+         }):
+        result = run_retrieval_agent(state)
+
+    # 3 tool calls were made (2 for IV-200, 1 for PV-100), but "shared" should
+    # only appear once in retrieved_evidence.
+    assert len([c for c in result.tool_call_log if "tool" in c]) == 3
+    chunk_ids = [e["chunk_id"] for e in result.retrieved_evidence]
+    assert chunk_ids.count("shared") == 1
+    assert sorted(chunk_ids) == ["price-1", "shared"]
