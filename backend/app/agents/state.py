@@ -22,6 +22,8 @@ class AgentState(BaseModel):
     # Validation & Planning decision — see app/agents/validation_planning_agent.py
     # {"decision": proceed|clarify|escalate, "issues": [{item, kind, detail, resolver, source}], "reviewed_by": [...]}
     validation_plan: Dict[str, Any] = Field(default_factory=dict)
+    # What the company already knows about this customer — see app/tools/customer_memory.py
+    customer_memory: Dict[str, Any] = Field(default_factory=dict)
 
     # Stage 5: Drafting Output
     quotation_draft: Dict[str, Any] = Field(default_factory=dict)

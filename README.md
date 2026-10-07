@@ -140,6 +140,22 @@ The **Validation & Planning Agent** (`run_validation_planning_agent`) works in t
 Every issue says who can resolve it. Anything only someone **inside the company** can decide → *escalate*;
 anything only the **customer** can answer → *clarify*; nothing → *proceed*.
 
+**Customer memory** (`app/tools/customer_memory.py`). Before deciding, the agent looks up what the
+company already knows about the customer: previous RFQs, and quotations a sales manager approved or
+rejected. This memory builds itself from normal use of the app. A returning customer with approved
+quotations is treated as an established account, so the agent stops questioning its credit
+approval. A new customer asking for credit is escalated, because policy grants Net 30 only to
+credit-approved accounts. The same RFQ therefore gets a different decision:
+
+| Customer history | Decision |
+|---|---|
+| none ("new customer") | escalate: Net 30 requested by an unverified customer |
+| one approved quotation | proceed: priced quotation |
+
+A customer whose previous RFQs never led to an approved quotation gets a non-blocking advisory. The
+lookup appears in the execution trace as a tool call (`validation_planning → customer_memory`), and
+if the database cannot be read the agent carries on without it.
+
 The **critic** (`run_critic_agent`) runs after every draft. It works in two layers:
 
 - **Rules** (cannot be overridden by the LLM): every RFQ item is on the draft, quantities match the RFQ,
@@ -296,12 +312,13 @@ cd backend
 python -m pytest -q
 ```
 
-10 test modules, 114 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
+11 test modules, 125 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
 routing (`test_orchestrator.py` — retries, escalation, re-extraction, re-search rules, LLM-vs-policy
 choice, the critic revision loop and the Validation & Planning decision), the Validation & Planning
 agent (`test_validation_planning.py`) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
-safeguards on LLM findings), the LLM client's failure handling (`test_llm_client.py`) and bad input
-end to end, including the RFQ API itself (`test_input_validation.py`). Agent tests
+safeguards on LLM findings), the LLM client's failure handling (`test_llm_client.py`), bad input
+end to end, including the RFQ API itself (`test_input_validation.py`), and customer memory against a
+real database schema (`test_customer_memory.py`). Agent tests
 use fake agents or a fake LLM, and `tests/conftest.py` forces demo mode, so the suite never calls a real
 provider even when `backend/.env` holds a key.
 
