@@ -11,6 +11,7 @@ import pytest
 from app.agents import retrieval_agent
 from app.agents.retrieval_agent import run_retrieval_agent
 from app.agents.state import AgentState
+from app.llm.client import LLMUnavailableError
 
 
 def _fake_plan(needs_policy_lookup, item_plans):
@@ -213,3 +214,26 @@ def test_deduplicates_evidence_by_chunk_id_across_calls():
     chunk_ids = [e["chunk_id"] for e in result.retrieved_evidence]
     assert chunk_ids.count("shared") == 1
     assert sorted(chunk_ids) == ["price-1", "shared"]
+
+
+def test_falls_back_to_default_plan_when_the_llm_is_unavailable():
+    """Since #7, llm_client.generate_completion raises LLMUnavailableError
+    instead of returning canned text when no model answers. The default plan
+    needs no LLM at all, so an unavailable LLM should not fail the whole RFQ
+    — the agent should catch the error and use the default plan, the same as
+    it does for an empty/unparseable plan."""
+    state = _state([{"product_name": "Industrial Valve", "product_code": "IV-200"}])
+
+    with patch.object(retrieval_agent.llm_client, "generate_completion",
+                       side_effect=LLMUnavailableError("provider down")), \
+         patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
+             "search_catalogue": lambda q: [{"chunk_id": "c1", "content": f"catalogue match for {q}"}],
+             "lookup_price": lambda q: [{"chunk_id": "c2", "content": f"price for {q}"}],
+         }):
+        result = run_retrieval_agent(state)  # must not raise
+
+    fallback_events = [c for c in result.tool_call_log if c.get("event") == "FALLBACK"]
+    assert len(fallback_events) == 1
+    tools_called = [c["tool"] for c in result.tool_call_log if "tool" in c]
+    assert "search_catalogue" in tools_called
+    assert "lookup_price" in tools_called
