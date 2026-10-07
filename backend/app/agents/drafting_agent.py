@@ -167,6 +167,7 @@ def _record_trace(
         {
             "agent_name": AGENT_NAME,
             "status": "ACTION",
+            "output_summary": f"[{step}] {decision}",
             "step": step,
             "decision": decision,
             "details": details or {},
@@ -184,6 +185,25 @@ def _build_abstention_draft(
     draft_line_items: List[Dict[str, Any]] = []
     clarification_questions: List[str] = []
 
+    customer_issues = [
+        issue
+        for issue in (state.validation_plan or {}).get("issues", [])
+        if issue.get("resolver") == "customer"
+    ]
+
+    clarification_questions.extend(
+        [
+            (
+                f"Clarification Required ({issue.get('item', 'requirement')}): "
+                f"{str(issue.get('detail', '')).strip()}. "
+                "Please confirm the acceptable requirement before a formal "
+                "quotation is issued."
+            )
+            for issue in customer_issues
+            if str(issue.get("detail", "")).strip()
+        ]
+    )
+
     for item in req_items:
         p_name = item.get("product_name", "")
         material = item.get("material_grade", "")
@@ -192,14 +212,6 @@ def _build_abstention_draft(
         row = lookup_product(
             item.get("product_code", ""),
             p_name,
-        )
-
-        clarification_questions.append(
-            f"Requirement Mismatch: Customer requested "
-            f"'{material or 'unspecified'}' grade for '{p_name}'. "
-            f"Approved catalogue only stocks: {_grade_list()}. "
-            "Please confirm if a standard approved grade is acceptable "
-            "or request a custom engineering evaluation."
         )
 
         draft_line_items.append(
@@ -235,16 +247,19 @@ def _build_abstention_draft(
             }
         )
 
-    payment_terms = extracted_payment = state.extracted_requirements.get(
-        "payment_terms"
-    )
+    payment_terms = state.extracted_requirements.get("payment_terms")
 
-    if extracted_payment and "90" in str(payment_terms):
-        clarification_questions.append(
-            "Commercial Credit Policy Mismatch: Customer requested "
-            "90-day credit terms. Standard company policy caps credit "
-            "at Net 30 Days. Requires CFO approval."
-        )
+    if payment_terms:
+        from app.agents.validation_planning_agent import credit_days
+
+        requested_credit_days = credit_days(payment_terms)
+
+        if requested_credit_days is not None and requested_credit_days > 30:
+            clarification_questions.append(
+                f"Commercial Credit Policy Mismatch: Customer requested "
+                f"{requested_credit_days}-day credit terms. Standard company "
+                "policy is Net 30 Days. Requires CFO approval."
+            )
 
     draft = {
         "customer_name": state.customer_name,
@@ -575,6 +590,13 @@ def run_drafting_agent(state: AgentState) -> AgentState:
     # 6. FINALIZE STATE
     # ------------------------------------------------------------------ #
     state.clarification_questions = clarification_questions
+
+    # Preserve validation advisories in the final quotation so the
+    # customer-facing response can display them.
+    draft["advisories"] = list(
+        (state.validation_plan or {}).get("advisories", [])
+    )
+
     state.quotation_draft = draft
 
     if draft["status"] == "CLARIFICATION_REQUIRED":
