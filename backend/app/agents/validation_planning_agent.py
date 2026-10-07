@@ -35,6 +35,7 @@ from app.agents.planning_agent import run_planning_agent
 from app.agents.validation_agent import run_validation_agent
 from app.agents.critic_agent import _norm, confirm_conflict, parse_reply, policy_texts, quote_found
 from app.tools.pricing_catalog import approved_grades, get_catalog, lookup_product
+from app.tools.customer_memory import describe as describe_customer, lookup_customer_history
 from app.llm.client import llm_client
 from app.core.config import settings
 from app.core.logging import logger
@@ -127,10 +128,26 @@ def rule_issues(state: AgentState) -> List[Dict[str, Any]]:
 
     days = credit_days(reqs.get("payment_terms"))
     if days is not None and days > STANDARD_CREDIT_DAYS:
+        memory = state.customer_memory or {}
+        context = (f" (returning customer, {memory['approved_quotations']} approved quotation(s))"
+                   if memory.get("established") else " (no purchase history with us)")
         issues.append(_issue("payment terms", "conflicting",
                              f"customer asks for {days}-day credit; policy standard is Net "
-                             f"{STANDARD_CREDIT_DAYS}, so finance must approve", "internal"))
+                             f"{STANDARD_CREDIT_DAYS}, so finance must approve{context}", "internal"))
     return issues
+
+
+def memory_advisories(memory: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Non-blocking points from the customer's history."""
+    out = []
+    if memory.get("found") and not memory.get("established"):
+        bad = memory.get("rejected_quotations", 0) + memory.get("escalated_quotations", 0)
+        if bad >= 2:
+            out.append({"item": "customer history", "note": "review before sending",
+                        "detail": f"none of this customer's {memory['past_rfqs']} previous RFQs led to an "
+                                  f"approved quotation ({memory.get('rejected_quotations', 0)} rejected, "
+                                  f"{memory.get('escalated_quotations', 0)} escalated)"})
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -155,6 +172,11 @@ EXTRACTED REQUIREMENTS:
 
 APPROVED EVIDENCE (catalogue, pricing, policy):
 {evidence}
+
+CUSTOMER HISTORY (from the company's own records):
+{customer}
+A returning customer with approved quotations is an established account: do not question
+their credit approval or account status. A new customer may need those checked.
 
 ALREADY FOUND BY RULES:
 {rule_issues}
@@ -224,6 +246,11 @@ def _single_price_product(item: str) -> bool:
     return bool(lookup_product("", item) or closest_product(item))
 
 
+# questions about whether the customer is a known, credit-approved account
+_ACCOUNT_STATUS = re.compile(r"credit[- ]?approv|new (or unverified )?customer|unverified customer|"
+                             r"account status|existing (customer|account)|advance payment", re.I)
+
+
 def _repeats_rule(issue: Dict[str, Any], rules: List[Dict[str, Any]]) -> bool:
     """True when a rule already reported this item with mostly the same words."""
     words = _words(issue["detail"])
@@ -247,6 +274,7 @@ def llm_issues(state: AgentState, rules: List[Dict[str, Any]],
         requirements=json.dumps(state.extracted_requirements, default=str)[:2000],
         evidence="\n---\n".join(e[:600] for e in evidence) or "(none)",
         rule_issues=json.dumps([{k: i[k] for k in ("item", "kind", "detail")} for i in rules]),
+        customer=describe_customer(state.customer_memory),
     )
     try:
         raw = llm_client.generate_completion(
@@ -274,6 +302,8 @@ def llm_issues(state: AgentState, rules: List[Dict[str, Any]],
             drop = "RFQ quote not found"
         elif _repeats_rule(issue, rules):
             drop = "already found by the rules"
+        elif state.customer_memory.get("established") and _ACCOUNT_STATUS.search(issue["detail"]):
+            drop = "customer memory: established account with approved quotations"
         elif i["kind"] == "conflicting":
             if not quote_found(i.get("evidence_quote"), evidence_blob):
                 drop = "evidence quote not found"
@@ -319,10 +349,16 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
     state = run_validation_agent(state)
     del state.agent_traces[traces_before:]   # replaced by this agent's single trace below
 
+    # Memory: what the company already knows about this customer (a tool call)
+    customer = state.customer_name or (state.extracted_requirements or {}).get("customer_name")
+    state.customer_memory = lookup_customer_history(customer, exclude_rfq_id=state.rfq_id)
+    state.messages.append({"step": state.step, "from": "validation_planning", "to": "customer_memory",
+                           "type": "tool", "content": describe_customer(state.customer_memory)})
+
     # Steps 2 and 3
     issues = rule_issues(state)
     reviewed_by = ["rules"]
-    advisories: List[Dict[str, Any]] = []
+    advisories: List[Dict[str, Any]] = memory_advisories(state.customer_memory)
     found = llm_issues(state, issues, advisories)
     if found is not None:
         reviewed_by.append("llm")
@@ -334,7 +370,8 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
         state.grounded_status = "ABSTAINED"
 
     state.validation_plan = {"decision": decision, "issues": issues, "advisories": advisories,
-                             "reviewed_by": reviewed_by}
+                             "reviewed_by": reviewed_by,
+                             "customer": describe_customer(state.customer_memory)}
 
     head = "; ".join(f"{i['item']}: {i['detail']}" for i in issues[:3])
     elapsed = int((time.time() - start) * 1000)
@@ -342,6 +379,7 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
         "agent_name": AGENT_NAME,
         "status": "SUCCESS" if decision == "proceed" else "WARNING",
         "output_summary": (f"Decision={decision}. Confidence={state.overall_confidence}. "
+                           f"Customer: {describe_customer(state.customer_memory)}. "
                            f"{len(issues)} issue(s), reviewed by {'+'.join(reviewed_by)}"
                            + (f". {head}" if head else "")),
         "execution_time_ms": elapsed,
