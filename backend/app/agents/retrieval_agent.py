@@ -1,7 +1,7 @@
 import time
 import json
 from app.agents.state import AgentState
-from app.llm.client import llm_client
+from app.llm.client import llm_client, LLMUnavailableError
 from app.llm.prompts import SYSTEM_PROMPT, RETRIEVAL_PLANNING_PROMPT
 from app.llm.structured_output import clean_and_parse_json
 from app.tools.catalogue_tool import search_catalogue
@@ -78,10 +78,18 @@ def run_retrieval_agent(state: AgentState) -> AgentState:
         requirements_json=json.dumps(state.extracted_requirements),
         retry_context=retry_context,
     )
-    raw_plan = llm_client.generate_completion(
-        system_prompt=SYSTEM_PROMPT,
-        user_prompt=plan_prompt
-    )
+    try:
+        raw_plan = llm_client.generate_completion(
+            system_prompt=SYSTEM_PROMPT,
+            user_prompt=plan_prompt
+        )
+    except LLMUnavailableError as e:
+        # The default plan below needs no LLM (it just calls both tools for every
+        # item), so there is no reason to fail the whole RFQ just because the
+        # planning call couldn't get an answer. Falls through to the existing
+        # empty-plan branch, which already handles "no usable plan" gracefully.
+        logger.warning(f"Retrieval Agent: LLM unavailable ({e}); using the default plan")
+        raw_plan = ""
     plan = clean_and_parse_json(raw_plan)
 
     if not plan.get("item_plans"):
