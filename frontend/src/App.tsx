@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { RFQProcessing } from './pages/RFQProcessing';
 import { RFQDetail } from './pages/RFQDetail';
@@ -36,6 +36,7 @@ export const App: React.FC = () => {
             <Route path="/contact" element={<RequireAuth><ContactUs /></RequireAuth>} />
             <Route path="/settings/profile" element={<RequireAuth><ProfileSettings /></RequireAuth>} />
             <Route path="/settings/preferences" element={<RequireAuth><Preferences /></RequireAuth>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </AuthProvider>

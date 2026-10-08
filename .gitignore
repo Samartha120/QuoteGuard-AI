@@ -42,9 +42,19 @@ venv.bak/
 
 # Vector DB & Storage
 data/chroma_db/
-backend/app/db/quoteguard.db
+backend/data/chroma_db/
+chroma_db/
+**/chroma_db/
+backend/app/db/*.db
+backend/app/db/*.db-shm
+backend/app/db/*.db-wal
+backend/app/db/*.db-journal
+*.sqlite
 *.sqlite3
 *.db
+*.db-shm
+*.db-wal
+*.db-journal
 uploads/
 
 # Node / Frontend

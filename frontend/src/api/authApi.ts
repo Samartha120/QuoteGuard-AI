@@ -20,8 +20,8 @@ export interface OTPResponse {
 
 
 export const authApi = {
-  login: async (email: string, password: string): Promise<OTPResponse> => {
-    const res = await api.post<OTPResponse>('/auth/login', { email, password });
+  login: async (email: string, password: string): Promise<LoginResponse | OTPResponse> => {
+    const res = await api.post<LoginResponse | OTPResponse>('/auth/login', { email, password });
     return res.data;
   },
 

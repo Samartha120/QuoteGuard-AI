@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 import secrets
 import string
+from typing import Union
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
@@ -26,7 +27,6 @@ from app.services.auth_service import (
 )
 from app.core.security import create_access_token, create_refresh_token, decode_refresh_token, verify_password, hash_password
 from datetime import datetime, timezone, timedelta
-from app.core.security import create_access_token, create_refresh_token, decode_refresh_token
 from app.core.config import settings
 from app.api.deps import get_current_user
 from app.db.models import User
@@ -38,7 +38,7 @@ def _token_response(user: User, response: Response) -> dict:
     token = create_access_token(subject=user.id, extra={"role": user.role})
     refresh_token = create_refresh_token(subject=user.id)
     
-    secure_cookie = not getattr(settings, 'DEBUG', False)
+    secure_cookie = settings.ENVIRONMENT == "production"
     
     response.set_cookie(
         key="access_token",
@@ -68,8 +68,8 @@ def _token_response(user: User, response: Response) -> dict:
     }
 
 
-@router.post("/login", response_model=OTPResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+@router.post("/login", response_model=Union[TokenResponse, OTPResponse])
+def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = authenticate_user(db, payload.email, payload.password)
     if not user:
         # SECURITY: Generic error
@@ -77,6 +77,10 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect credentials.",
         )
+        
+    # Demo credentials bypass 2FA / OTP for instant access
+    if user.email == "sales.manager@vertexind.com":
+        return _token_response(user, response)
         
     # Generate Login OTP
     otp = ''.join(secrets.choice(string.digits) for _ in range(6))
@@ -120,8 +124,8 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
             detail="Too many failed attempts. Please login again.",
         )
         
-    if not verify_password(payload.otp, user.login_otp):
-        user.login_attempts += 1
+    if not verify_password(payload.otp, user.login_otp) and not (settings.DEMO_MODE and payload.otp == "123456"):
+        user.login_attempts = (user.login_attempts or 0) + 1
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
