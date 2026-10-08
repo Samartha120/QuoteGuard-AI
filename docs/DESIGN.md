@@ -123,6 +123,20 @@ list above includes raw RFQ data as well as the evidence Retrieval found: the ag
 just that the requirements are groundable, but that the *customer's own terms* (credit, in
 particular) are consistent with what the company's records say about them.
 
+**Input validation** (`app/core/input_validation.py`). Bad input is caught in two places, before
+either one can waste an LLM call or reach a human reviewer:
+
+1. **At the API**, before any agent runs: `validate_rfq_text` rejects RFQ text that's empty,
+   too short, gibberish, a binary file pasted as text, or absurdly long; `validate_upload` rejects
+   an unsupported or oversized file, or a scanned PDF with no extractable text; `validate_customer_name`
+   rejects a blank or implausibly long name. Each rejection returns an HTTP status and a message
+   that tells the user what to fix (see `backend/tests/test_input_validation.py`).
+2. **After extraction**, on the Requirement Analysis Agent's own output: `normalize_requirements`
+   coerces a quantity the LLM returned as text or a range, clears a negative/zero/implausible
+   quantity, and drops a line item for a product the RFQ never actually mentioned — every change
+   is logged so Validation & Planning can turn it into a customer-facing clarification rather than
+   it silently reaching the quotation.
+
 ---
 
 ## 3. Orchestration Pattern — and why
