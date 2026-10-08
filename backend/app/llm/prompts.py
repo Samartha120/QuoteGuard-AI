@@ -13,16 +13,18 @@ RFQ TEXT:
 {rfq_text}
 
 Return JSON with:
-- customer_name (string)
+- customer_name (string): the customer's COMPANY name, not the contact person's name
 - customer_email (string or null)
 - line_items: list of objects containing:
-  - product_name (string)
-  - product_code (string or null)
-  - requested_spec (string or null)
-  - material_grade (string or null)
-  - quantity (integer)
-- payment_terms (string or null)
-- delivery_terms (string or null)
+  - product_name (string): the product as named in the RFQ (e.g. "Industrial Valve")
+  - product_code (string or null): ONLY the exact code if the RFQ states one (e.g. "IV-200"). If the RFQ names a product without giving its code, leave this null rather than guessing — it will be resolved against the approved catalogue afterwards.
+  - requested_spec (string or null): any spec detail beyond material grade (port size, pressure rating, connection type, etc.), verbatim
+  - material_grade (string or null): normalized (e.g. "SS304", not "SS 304" or "stainless steel 304")
+  - quantity (integer): the number of units requested; if the RFQ gives a range, use the higher number
+- payment_terms (string or null): verbatim, including any account/credit status the customer mentions
+- delivery_terms (string or null): verbatim
+
+Do not invent a product_code, price, or material grade that is not stated in the RFQ text.
 """
 
 RETRIEVAL_PLANNING_PROMPT = """You are deciding which knowledge-base tools to call to find grounding evidence for this RFQ before a quotation can be drafted.
