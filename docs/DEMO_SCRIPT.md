@@ -26,7 +26,7 @@
    - Payment terms: Net 30 days.
 4. Click **Run Agentic Workflow**.
 5. Observe real-time visual progress across agent stages:
-   - `Requirement Extraction Agent` -> Extracted structured JSON.
+   - `Requirement Analysis Agent` -> Extracted structured JSON.
    - `Retrieval Agent` -> Found matching catalogue entries and CSV pricing.
    - `Planning & Validation Agent` -> Confidence scores > 0.90 for all fields.
    - `Drafting Agent` -> Generated valid quotation draft.
@@ -42,7 +42,7 @@
    - Delivery within 3 days doorstep, 90 days credit terms.
 3. Click **Run Agentic Workflow**.
 4. Observe the **Abstention Logic in Action**:
-   - `Requirement Extraction Agent` identifies requested SS316 grade.
+   - `Requirement Analysis Agent` identifies requested SS316 grade.
    - `Retrieval Agent` searches vector store, retrieves only SS304 standard catalog.
    - `Planning Agent` calculates confidence = 0.40 (below 0.80 grounding threshold).
    - `Validation Agent` triggers **ABSTENTION & CLARIFICATION** flag.
