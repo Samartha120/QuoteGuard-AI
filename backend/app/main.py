@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 
@@ -7,6 +8,12 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.db.init_db import init_db
 from app.api.router import api_router
+from app.core.middleware import (
+    SecurityHeadersMiddleware,
+    CSRFProtectionMiddleware,
+    RateLimiterMiddleware,
+    RequestTrackingMiddleware,
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,32 +54,42 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware
+# 1. Request Tracking Middleware
+app.add_middleware(RequestTrackingMiddleware)
+
+# 2. Rate Limiting Middleware
+app.add_middleware(RateLimiterMiddleware)
+
+# 3. CSRF Protection Middleware
+app.add_middleware(CSRFProtectionMiddleware)
+
+# 4. Security Headers Middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 5. Strict CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "X-Request-ID",
+    ],
 )
 
-# Security Headers Middleware
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    # Protection against XSS and clickjacking
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
-    # HSTS for production
-    if settings.ENVIRONMENT == "production":
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
-    # Content Security Policy (strict API profile)
-    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none';"
-    
-    return response
+# Centralized Safe Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred. Please try again later."}
+    )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

@@ -81,8 +81,9 @@ def validate_customer_name(name: Optional[str]) -> str:
 
 
 def validate_upload(filename: Optional[str], content: bytes) -> None:
-    """Reject unsupported, empty or oversized uploads before they are saved or parsed."""
-    ext = os.path.splitext(filename or "")[1].lower()
+    """Reject unsupported, empty, oversized, or malicious uploads using signature checks."""
+    base_name = os.path.basename(filename or "")
+    ext = os.path.splitext(base_name)[1].lower()
     if ext not in ALLOWED_UPLOAD_TYPES:
         allowed = ", ".join(sorted(ALLOWED_UPLOAD_TYPES))
         raise InputError(f"Unsupported file type '{ext or 'none'}'. Upload one of: {allowed}.", 415)
@@ -91,6 +92,26 @@ def validate_upload(filename: Optional[str], content: bytes) -> None:
     if len(content) > MAX_UPLOAD_BYTES:
         raise InputError(f"The file is {len(content) / 1_048_576:.1f} MB; the limit is "
                          f"{MAX_UPLOAD_BYTES // 1_048_576} MB.", 413)
+
+    # Magic-byte signature verification
+    if ext == ".pdf":
+        if not content.startswith(b"%PDF-"):
+            raise InputError("Invalid file signature: Content is not a legitimate PDF document.", 415)
+    elif ext == ".docx":
+        if not content.startswith(b"PK\x03\x04"):
+            raise InputError("Invalid file signature: Content is not a legitimate DOCX document.", 415)
+    elif ext in {".txt", ".md", ".csv"}:
+        # Reject executable binaries disguised as text (PE / ELF / Mach-O)
+        if content.startswith(b"MZ") or content.startswith(b"\x7fELF") or content.startswith(b"\xca\xfe\xba\xbe"):
+            raise InputError("Disallowed executable binary file content detected.", 415)
+        # Verify text is decodable
+        try:
+            content.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                content.decode("latin-1")
+            except Exception:
+                raise InputError("File encoding is unsupported or binary content.", 415)
 
 
 def validate_parsed_upload(text: Optional[str], filename: Optional[str]) -> str:

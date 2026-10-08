@@ -8,16 +8,32 @@ from sqlalchemy import text
 
 
 def _ensure_user_auth_columns():
-    """Lightweight SQLite migration: add auth columns to an existing users table
-    created before authentication was introduced (no Alembic in this project)."""
+    """Lightweight SQLite migration: add auth and security columns to existing tables."""
     with engine.connect() as conn:
         cols = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
-        if not cols:
-            return
-        if "hashed_password" not in cols:
-            conn.execute(text("ALTER TABLE users ADD COLUMN hashed_password VARCHAR"))
-        if "is_active" not in cols:
-            conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+        if cols:
+            if "hashed_password" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN hashed_password VARCHAR"))
+            if "is_active" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+            if "login_otp" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN login_otp VARCHAR"))
+            if "login_otp_expires_at" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN login_otp_expires_at DATETIME"))
+            if "login_otp_created_at" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN login_otp_created_at DATETIME"))
+            if "login_attempts" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN login_attempts INTEGER DEFAULT 0"))
+            if "failed_login_attempts" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0"))
+            if "locked_until" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN locked_until DATETIME"))
+
+        pending_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(pending_users)"))}
+        if pending_cols:
+            if "last_otp_sent_at" not in pending_cols:
+                conn.execute(text("ALTER TABLE pending_users ADD COLUMN last_otp_sent_at DATETIME"))
+
         conn.commit()
 
 

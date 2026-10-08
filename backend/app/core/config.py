@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     # Auth / JWT
     JWT_SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION_quoteguard_dev_secret"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24h
+    JWT_ISSUER: str = "QuoteGuard-AI"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Short-lived 30 minutes
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     DEFAULT_ADMIN_PASSWORD: str = "quoteguard123"
 
     # Google Sign-In (optional). Set GOOGLE_CLIENT_ID to enable the
