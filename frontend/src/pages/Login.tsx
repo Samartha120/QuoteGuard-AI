@@ -25,8 +25,12 @@ export const Login: React.FC = () => {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      setStep('otp');
+      const res = await login(email, password);
+      if (res && 'user' in res) {
+        navigate(from, { replace: true });
+      } else {
+        setStep('otp');
+      }
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401) setError('Invalid email or password.');
@@ -202,8 +206,16 @@ export const Login: React.FC = () => {
         Don't have an account? <Link to="/signup" className="auth-link">Create one</Link>
       </p>
 
-      <div className="auth-demo">
-        <span className="auth-demo-label">Demo credentials</span>
+      <div
+        className="auth-demo"
+        onClick={() => {
+          setEmail('sales.manager@vertexind.com');
+          setPassword('quoteguard123');
+        }}
+        style={{ cursor: 'pointer' }}
+        title="Click to auto-fill credentials"
+      >
+        <span className="auth-demo-label">Demo credentials (click to auto-fill)</span>
         sales.manager@vertexind.com · quoteguard123
       </div>
     </AuthLayout>
