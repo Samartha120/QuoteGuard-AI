@@ -5,9 +5,11 @@ from app.core.config import settings
 
 db_url = settings.DATABASE_URL
 if db_url.startswith("sqlite"):
-    # Ensure directory exists for sqlite file
     db_path = db_url.replace("sqlite:///", "")
-    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    if not os.path.isabs(db_path):
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.basename(db_path)))
+        db_url = f"sqlite:///{db_path}"
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     connect_args = {"check_same_thread": False}
 else:
     connect_args = {}

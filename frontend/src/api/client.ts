@@ -5,6 +5,7 @@ const api = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
 });
 
@@ -45,7 +46,11 @@ api.interceptors.response.use(
 
       try {
         // Attempt refresh (cookies are sent automatically)
-        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        await axios.post(
+          '/api/auth/refresh',
+          {},
+          { withCredentials: true, headers: { 'X-Requested-With': 'XMLHttpRequest' } }
+        );
         processQueue(null);
         return api(originalRequest);
       } catch (err) {
