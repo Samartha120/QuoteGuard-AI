@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.models import EvaluationRun, RFQ, Quotation, AgentRun
 from app.agents.state import AgentState
 from app.agents.workflow import workflow_orchestrator
+from app.services.agent_metrics import score_case, summarize as summarize_agents
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -116,6 +117,7 @@ def run_evaluation_benchmark(db: Session, dataset_path: str = None) -> Evaluatio
             "overall_confidence": final.overall_confidence,
             "latency_ms": round(latency_ms, 1),
             "result": "PASS" if status_correct else "FAIL",
+            "agents": score_case(case, final),
         })
 
     grounding_rate = _pct(confidences_grounded)
@@ -147,6 +149,7 @@ def run_evaluation_benchmark(db: Session, dataset_path: str = None) -> Evaluatio
             "test_cases_evaluated": len(case_results),
             "cases_passed": passed,
             "cases": case_results,
+            "agent_metrics": summarize_agents([c["agents"] for c in case_results if "agents" in c]),
             "status": overall,
         },
     )
