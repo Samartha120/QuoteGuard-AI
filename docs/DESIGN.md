@@ -98,15 +98,30 @@ themselves never call each other directly.
 | :-: | :--- | :--- | :--- | :--- |
 | 1 | **Requirement Analysis Agent** | Turns unstructured RFQ text into structured data | `raw_text` | `extracted_requirements`, `customer_name`, `customer_email` |
 | 2 | **Retrieval Agent** | Finds the evidence (catalogue, pricing, policy) needed to ground each line item; LLM plans *which* tools to call, not a fixed loop | `extracted_requirements` | `retrieved_evidence`, `tool_call_log` |
-| 3 | **Validation & Planning Agent** | Scores grounding confidence, finds missing/conflicting/ambiguous requirements, decides whether the RFQ can be quoted, needs customer clarification, or needs internal escalation | `extracted_requirements`, `retrieved_evidence` | `field_confidences`, `grounded_status`, `overall_confidence`, `abstention_required`, `validation_plan` |
+| 3 | **Validation & Planning Agent** | Scores grounding confidence, finds missing/conflicting/ambiguous requirements, looks up the customer's history (**customer memory**, below) and decides whether the RFQ can be quoted, needs customer clarification, or needs internal escalation | `extracted_requirements`, `retrieved_evidence`, `customer_memory` | `field_confidences`, `grounded_status`, `overall_confidence`, `abstention_required`, `validation_plan`, `customer_memory` |
 | 4 | **Quotation & Communication Agent** ("Drafting Agent") | Produces the customer-facing artifact: a priced, cited quotation, or a clarification/escalation request | `validation_plan`, `extracted_requirements`, `retrieved_evidence` | `quotation_draft`, `clarification_questions`, `escalation_notes` |
 | — | **Critic Agent** | Independently reviews the draft — deterministic rule checks an LLM is never trusted with, plus an evidence-grounded LLM review for judgement calls rules can't make | `quotation_draft`, `retrieved_evidence`, policy text | `critic_feedback` |
 | — | **Supervisor / Orchestrator** | Decides which of the four agents (or the critic, or escalation) runs next, from the current state; the only place branching logic for the *route* lives | all of `AgentState` | `messages`, `orchestrator_decisions`, `completed_agents`, `attempts`, `next_agent`, `step` |
 
-The four specialist agents plus the critic map onto the roles in the team's approved proposal
-("4 agents"); the critic is the one addition beyond the original proposal, added specifically to
-catch drafting mistakes (bad arithmetic, invented prices, ignored customer terms) before a human
-reviewer ever sees them.
+The four specialist agents map onto the roles in the team's approved proposal ("4 agents"); the
+critic and the supervisor/orchestrator are both additions beyond that original proposal — the
+critic to catch drafting mistakes (bad arithmetic, invented prices, ignored customer terms) before
+a human reviewer ever sees them, and the supervisor to own the routing/retry logic (including
+sending an agent back for another attempt) that a fixed 4-step pipeline has no place for.
+
+**Customer memory** (`app/tools/customer_memory.py`). Before deciding, the Validation & Planning
+Agent looks up what the company already knows about the customer — past RFQs, and quotations a
+sales manager approved or rejected — keyed by a normalized customer name (so "Apex Engineering
+Works Ltd." and "APEX ENGINEERING WORKS PVT LTD" match). This memory needs no separate recording
+step: it builds itself from normal use of the app, by reading the same database every RFQ and
+approval/rejection already writes to. A returning customer with at least one approved quotation is
+treated as an established account (the agent stops re-escalating its credit terms); a new customer
+requesting credit is still escalated, since policy only grants Net 30 to credit-approved accounts.
+The same RFQ can therefore reach a different decision purely based on who is asking — see
+`README.md` for the worked example. This is also why the **Validation & Planning Agent**'s input
+list above includes raw RFQ data as well as the evidence Retrieval found: the agent validates not
+just that the requirements are groundable, but that the *customer's own terms* (credit, in
+particular) are consistent with what the company's records say about them.
 
 ---
 
