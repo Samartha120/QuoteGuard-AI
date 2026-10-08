@@ -41,8 +41,8 @@ the run below:
 
 ```json
 {
-  "rfq_id": "demo-run-seeded-1",
-  "raw_text": "REQUEST FOR QUOTATION (RFQ)\n\nCustomer Name: Apex Engineering Works Ltd.\nContact Person: Rajesh Kumar (Procurement Manager)\nEmail: procurement@apexeng.co.in\nDate: 25th September 2026\n\nDear Vertex Sales Team,\n\nWe would like to request a formal quotation for the supply of industrial valve hardware for our upcoming refinery expansion project in Vadodara.\n\nPlease provide your best price and delivery schedule for the following items:\n1. Item: Industrial Valve IV-200\n   - Specification: Standard SS304 body with PTFE seals, PN16 rating\n   - Quantity: 20 units\n\n2. Item: Pressure Relief Valve PV-100\n   - Specification: Standard SS304 seat\n   - Quantity: 15 units\n\nRequired Terms:\n- Standard ex-works Pune delivery terms.\n- Payment terms: Net 30 days credit.\n\nPlease send the quotation at your earliest convenience.\n\nBest regards,\nRajesh Kumar\nApex Engineering Works Ltd.\n"
+  "rfq_id": "demo-run-groq-1",
+  "raw_text": "REQUEST FOR QUOTATION (RFQ)\n\nCustomer Name: Apex Engineering Works Ltd.\nContact Person: Rajesh Kumar (Procurement Manager)\nEmail: procurement@apexeng.co.in\nDate: 25th September 2026\n\nDear Vertex Sales Team,\n\nWe would like to request a formal quotation for the supply of industrial valve hardware for our upcoming refinery expansion project in Vadodara.\n\nPlease provide your best price and delivery schedule for the following items:\n1. Item: Industrial Valve IV-200\n   - Specification: Standard SS304 body with PTFE seals, PN16 rating, 2-inch (DN50) port\n   - Quantity: 20 units\n\n2. Item: Pressure Relief Valve PV-100\n   - Specification: Standard SS304 seat\n   - Quantity: 15 units\n\nRequired Terms:\n- Standard ex-works Pune delivery terms.\n- Payment terms: Net 30 days credit (Apex is an existing credit‑approved account with Vertex).\n\nPlease send the quotation at your earliest convenience.\n\nBest regards,\nRajesh Kumar\nApex Engineering Works Ltd.\n"
 }
 ```
 
@@ -150,140 +150,165 @@ field list (and what writes each field) is documented in `backend/app/agents/sta
 
 ### 2.2 Real sample output
 
-Captured verbatim (unedited, including the exact confidence numbers) from running
-`workflow_orchestrator.run_pipeline()` against the input above, with the knowledge base seeded
-exactly the way `app/main.py`'s startup lifespan seeds it (the approved product catalogue,
-pricing sheet and delivery-terms policy). This run used the deterministic hashing embedding
-fallback (`sentence-transformers` not installed in this environment), which is why both items land
-at **0.79 confidence — just under** the 0.80 `GROUNDING_THRESHOLD`. That is not a cherry-picked
-"happy path": it is a genuine run that demonstrates exactly the behaviour the architecture is
-designed around — the supervisor re-entering Retrieval once to try for better evidence
-(`attempts.retrieval = 2`), Validation & Planning still finding the evidence too weak for a
-*stocked* item, the Critic approving the *draft itself* as internally consistent, and the
-supervisor nonetheless routing to **ESCALATE** rather than ever inventing a price.
+Captured verbatim (unedited, including the exact confidence numbers and execution times) from
+running `workflow_orchestrator.run_pipeline()` against the input above, with `DEMO_MODE=false` and
+a real LLM provider configured (Groq, `openai/gpt-oss-120b`, reached through the OpenAI-compatible
+client) and the knowledge base seeded exactly the way `app/main.py`'s startup lifespan seeds it
+(the approved product catalogue, pricing sheet and delivery-terms policy). This replaces an
+earlier capture of this document that was taken with no LLM configured and fell back to
+`DEMO_MODE`'s canned responses — every `execution_time_ms` below is real wall-clock time against
+the provider (2882ms / 10988ms / 2099ms / 1957ms for the four LLM-driven agents), which a canned
+response can't produce. This run reaches **GROUNDED at 0.86 confidence** and the full approved
+path end to end: the Retrieval Agent's LLM-selected tool calls find strong evidence on the first
+pass (no retry needed, `attempts.retrieval = 1`), Validation & Planning's own LLM review agrees
+with the rules check and proceeds, the Quotation & Communication Agent prices and cites both line
+items, and the Critic approves the draft — while still catching something real: a warning that the
+draft doesn't include the delivery schedule the customer asked for, which is genuine LLM reasoning
+over the draft, not a rule.
 
 ```json
 {
-  "rfq_id": "demo-run-seeded-1",
+  "rfq_id": "demo-run-groq-1",
   "customer_name": "Apex Engineering Works Ltd.",
   "customer_email": "procurement@apexeng.co.in",
   "extracted_requirements": {
     "customer_name": "Apex Engineering Works Ltd.",
     "customer_email": "procurement@apexeng.co.in",
     "line_items": [
-      { "product_name": "Industrial Valve IV-200", "product_code": "IV-200",
-        "requested_spec": "Standard SS304 body with PTFE seals, PN16 rating",
-        "material_grade": "SS304", "quantity": 20, "status": "abstained" },
-      { "product_name": "Pressure Relief Valve PV-100", "product_code": "PV-100",
+      { "product_name": "Industrial Valve", "product_code": "IV-200",
+        "requested_spec": "Standard SS304 body with PTFE seals, PN16 rating, 2-inch (DN50) port",
+        "material_grade": "SS304", "quantity": 20, "status": "verified" },
+      { "product_name": "Pressure Relief Valve", "product_code": "PV-100",
         "requested_spec": "Standard SS304 seat", "material_grade": "SS304",
-        "quantity": 15, "status": "abstained" }
+        "quantity": 15, "status": "verified" }
     ],
-    "payment_terms": "Net 30 days credit",
-    "delivery_terms": "Ex-works Pune"
+    "payment_terms": "Net 30 days credit (Apex is an existing credit‑approved account with Vertex)",
+    "delivery_terms": "Standard ex‑works Pune"
   },
-  "field_confidences": { "Industrial Valve IV-200": 0.79, "Pressure Relief Valve PV-100": 0.79 },
-  "grounded_status": "ABSTAINED",
-  "overall_confidence": 0.79,
-  "abstention_required": true,
+  "field_confidences": { "Industrial Valve": 0.86, "Pressure Relief Valve": 0.86 },
+  "grounded_status": "GROUNDED",
+  "overall_confidence": 0.86,
+  "abstention_required": false,
   "validation_plan": {
-    "decision": "escalate",
-    "issues": [
-      { "item": "Industrial Valve IV-200", "kind": "missing",
-        "detail": "evidence for this stocked item is weak (confidence 0.79 < 0.8)",
-        "resolver": "internal", "source": "rules" },
-      { "item": "Pressure Relief Valve PV-100", "kind": "missing",
-        "detail": "evidence for this stocked item is weak (confidence 0.79 < 0.8)",
-        "resolver": "internal", "source": "rules" }
+    "decision": "proceed",
+    "issues": [],
+    "advisories": [
+      { "item": "Pressure Relief Valve PV-100",
+        "detail": "Connection type and pressure set range are not specified in the RFQ.",
+        "note": "confirm with the customer on the purchase order" }
     ],
-    "reviewed_by": ["rules"]
+    "reviewed_by": ["rules", "llm"]
   },
   "quotation_draft": {
     "customer_name": "Apex Engineering Works Ltd.",
-    "subtotal": 0.0, "tax_amount": 0.0, "total_amount": 0.0,
-    "status": "CLARIFICATION_REQUIRED",
+    "subtotal": 132000.0, "tax_amount": 23760.0, "total_amount": 155760.0,
+    "status": "PENDING_APPROVAL",
     "line_items": [
-      { "product_code": "IV-200-UNVERIFIED", "product_name": "Industrial Valve IV-200 (SS304 variant)",
-        "material_grade": "SS304", "quantity": 20, "unit_price": null, "total_price": null,
-        "confidence_score": 0.79, "status": "abstained",
-        "citations": [ { "field_name": "material_grade", "source_filename": "product_catalog_2026.md",
-          "source_chunk_id": "e10fd0e4-05fa-428c-ab71-3b8b0a315070_chunk_0",
-          "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd. ... Product 1: IV-200 Heavy Duty Industrial Valve - Product Code: IV-200 - Categor",
-          "retrieval_score": 0.6857 } ] },
-      { "product_code": "PV-100-UNVERIFIED", "product_name": "Pressure Relief Valve PV-100 (SS304 variant)",
-        "material_grade": "SS304", "quantity": 15, "unit_price": null, "total_price": null,
-        "confidence_score": 0.79, "status": "abstained",
-        "citations": [ { "field_name": "material_grade", "source_filename": "product_catalog_2026.md",
-          "source_chunk_id": "e10fd0e4-05fa-428c-ab71-3b8b0a315070_chunk_0",
-          "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd. ... Product 1: IV-200 Heavy Duty Industrial Valve - Product Code: IV-200 - Categor",
-          "retrieval_score": 0.6857 } ] }
+      { "product_code": "IV-200", "product_name": "Industrial Valve IV-200",
+        "material_grade": "SS304", "quantity": 20, "unit_price": 4500.0, "total_price": 90000.0,
+        "confidence_score": 0.86, "status": "verified",
+        "citations": [ { "field_name": "unit_price", "source_filename": "commercial_delivery_terms.md",
+          "source_chunk_id": "86ea3001-0cdf-4ca3-9f58-e664853bab49_chunk_0",
+          "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd. ## Standard Commercial & Delivery Terms Policy (2026) ### 1. Payment Terms - Standard Credit Period: Net 30 Days from date of invoice for verified credit-ap",
+          "retrieval_score": 0.7573 } ] },
+      { "product_code": "PV-100", "product_name": "Pressure Relief Valve PV-100",
+        "material_grade": "SS304", "quantity": 15, "unit_price": 2800.0, "total_price": 42000.0,
+        "confidence_score": 0.86, "status": "verified",
+        "citations": [ { "field_name": "unit_price", "source_filename": "commercial_delivery_terms.md",
+          "source_chunk_id": "86ea3001-0cdf-4ca3-9f58-e664853bab49_chunk_0",
+          "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd. ## Standard Commercial & Delivery Terms Policy (2026) ### 1. Payment Terms - Standard Credit Period: Net 30 Days from date of invoice for verified credit-ap",
+          "retrieval_score": 0.7573 } ] }
     ]
   },
-  "clarification_questions": [
-    "Requirement Mismatch: Customer requested 'SS304' grade for 'Industrial Valve IV-200'. Approved catalogue only stocks: CARBON STEEL, SS304. Please confirm if a standard approved grade is acceptable or request a custom engineering evaluation.",
-    "Requirement Mismatch: Customer requested 'SS304' grade for 'Pressure Relief Valve PV-100'. Approved catalogue only stocks: CARBON STEEL, SS304. Please confirm if a standard approved grade is acceptable or request a custom engineering evaluation."
-  ],
-  "escalation_notes": "ESCALATED BY ORCHESTRATOR: draft is ready, but Validation & Planning found items only someone in the company can decide: Industrial Valve IV-200: evidence for this stocked item is weak (confidence 0.79 < 0.8); Pressure Relief Valve PV-100: evidence for this stocked item is weak (confidence 0.79 < 0.8). A sales engineer must review this RFQ.",
+  "clarification_questions": [],
+  "escalation_notes": null,
   "critic_feedback": {
-    "verdict": "approve", "issues": [], "fix_by": [], "reviewed_by": ["rules"],
-    "summary": "", "round": 1, "draft_digest": "9c48bd3ddfaa4ec1", "unchanged_since_last_round": false
+    "verdict": "approve",
+    "issues": [
+      { "line": "terms", "check": "llm_review",
+        "detail": "Draft quotation does not provide a delivery schedule, which the customer explicitly requested.",
+        "fix_by": "drafting", "severity": "warning", "source": "llm" }
+    ],
+    "fix_by": [], "reviewed_by": ["rules", "llm"],
+    "summary": "Quotation missing the requested delivery schedule.",
+    "round": 1, "draft_digest": "474a04929cc7ff5d", "unchanged_since_last_round": false
   },
   "agent_traces": [
     { "agent_name": "Requirement Extraction Agent", "status": "SUCCESS",
       "output_summary": "Extracted 2 line items and commercial terms for Apex Engineering Works Ltd.",
-      "execution_time_ms": 0 },
+      "execution_time_ms": 2882 },
     { "agent_name": "Retrieval Agent", "status": "SUCCESS",
       "output_summary": "Executed 5 LLM-selected tool call(s) this run (retry: line items need catalogue, pricing and policy evidence), retrieving 9 unique evidence chunks.",
-      "execution_time_ms": 23 },
-    { "agent_name": "Validation & Planning Agent", "status": "WARNING",
-      "output_summary": "Decision=escalate. Confidence=0.79. 2 issue(s), reviewed by rules. Industrial Valve IV-200: evidence for this stocked item is weak (confidence 0.79 < 0.8); Pressure Relief Valve PV-100: evidence for this stocked item is weak (confidence 0.79 < 0.8)",
-      "execution_time_ms": 1 },
-    { "agent_name": "Retrieval Agent", "status": "SUCCESS",
-      "output_summary": "Executed 5 LLM-selected tool call(s) this run (retry: weak evidence for stocked item(s) ['Industrial Valve IV-200', 'Pressure Relief Valve PV-100']; search again), retrieving 9 unique evidence chunks.",
-      "execution_time_ms": 12 },
-    { "agent_name": "Validation & Planning Agent", "status": "WARNING",
-      "output_summary": "Decision=escalate. Confidence=0.79. 2 issue(s), reviewed by rules. Industrial Valve IV-200: evidence for this stocked item is weak (confidence 0.79 < 0.8); Pressure Relief Valve PV-100: evidence for this stocked item is weak (confidence 0.79 < 0.8)",
+      "execution_time_ms": 10988 },
+    { "agent_name": "Validation & Planning Agent", "status": "SUCCESS",
+      "output_summary": "Decision=proceed. Confidence=0.86. 0 issue(s), reviewed by rules+llm",
+      "execution_time_ms": 2099 },
+    { "agent_name": "Quotation & Communication Agent", "status": "ACTION", "step": "task_analysis",
+      "decision": "create_grounded_quotation",
+      "details": { "revision_requested": false, "task": "validation & planning: proceed; draft the priced quotation",
+        "line_items": 2, "critic_verdict": null },
+      "execution_time_ms": 0 },
+    { "agent_name": "Quotation & Communication Agent", "status": "ACTION", "step": "tool_selection",
+      "decision": "Selected tools for current quotation task",
+      "details": { "tools": ["lookup_product", "price_for_quantity", "calculate_quotation_totals"],
+        "reason": "Tools selected according to quotation objective and current state instead of executing every tool blindly." },
+      "execution_time_ms": 0 },
+    { "agent_name": "Quotation & Communication Agent", "status": "ACTION", "step": "tool_execution",
+      "decision": "Executed grounded quotation tools",
+      "details": { "tools_selected": ["lookup_product", "price_for_quantity", "calculate_quotation_totals"],
+        "tool_results": [
+          { "tool": "lookup_product", "product": "Industrial Valve", "found": true },
+          { "tool": "price_for_quantity", "product": "Industrial Valve", "quantity": 20,
+            "list_price": 4500.0, "unit_price": 4500.0, "discount_rate": 0.0, "total_price": 90000.0 },
+          { "tool": "lookup_product", "product": "Pressure Relief Valve", "found": true },
+          { "tool": "price_for_quantity", "product": "Pressure Relief Valve", "quantity": 15,
+            "list_price": 2800.0, "unit_price": 2800.0, "discount_rate": 0.0, "total_price": 42000.0 },
+          { "tool": "calculate_quotation_totals", "subtotal": 132000.0, "tax_amount": 23760.0, "total_amount": 155760.0 }
+        ] },
+      "execution_time_ms": 0 },
+    { "agent_name": "Quotation & Communication Agent", "status": "ACTION", "step": "result_evaluation",
+      "decision": "quotation_ready",
+      "details": { "decision": "quotation_ready", "line_items": 2, "verified_items": 2,
+        "unverified_items": 0, "tool_calls": 5, "clarification_count": 0 },
       "execution_time_ms": 0 },
     { "agent_name": "Quotation & Communication Agent", "status": "SUCCESS",
-      "output_summary": "Agent decision=clarification_required. Status=CLARIFICATION_REQUIRED. Line Items=2. Clarifications=2.",
+      "output_summary": "Agent decision=quotation_ready. Status=PENDING_APPROVAL. Line Items=2. Clarifications=0.",
       "execution_time_ms": 0 },
     { "agent_name": "Critic Agent", "status": "SUCCESS",
-      "output_summary": "Verdict=approve (0 errors, 0 warnings; reviewed by rules)", "execution_time_ms": 0 },
-    { "agent_name": "Orchestrator", "status": "ESCALATED",
-      "output_summary": "ESCALATED BY ORCHESTRATOR: draft is ready, but Validation & Planning found items only someone in the company can decide: ...",
-      "execution_time_ms": 0 }
+      "output_summary": "Verdict=approve (0 errors, 1 warnings; reviewed by rules+llm)", "execution_time_ms": 1957 }
   ],
   "tool_call_log": [
-    { "agent": "Retrieval Agent", "tool": "search_catalogue", "query": "Industrial Valve IV-200 SS304", "for_item": "Industrial Valve IV-200", "results_found": 3 },
-    { "agent": "Retrieval Agent", "tool": "lookup_price", "query": "IV-200", "for_item": "Industrial Valve IV-200", "results_found": 2 },
-    { "agent": "Retrieval Agent", "tool": "search_catalogue", "query": "Pressure Relief Valve PV-100 SS304", "for_item": "Pressure Relief Valve PV-100", "results_found": 3 },
-    { "agent": "Retrieval Agent", "tool": "lookup_price", "query": "PV-100", "for_item": "Pressure Relief Valve PV-100", "results_found": 2 },
+    { "agent": "Retrieval Agent", "tool": "search_catalogue", "query": "IV-200", "for_item": "Industrial Valve", "results_found": 3 },
+    { "agent": "Retrieval Agent", "tool": "lookup_price", "query": "IV-200", "for_item": "Industrial Valve", "results_found": 2 },
+    { "agent": "Retrieval Agent", "tool": "search_catalogue", "query": "PV-100", "for_item": "Pressure Relief Valve", "results_found": 3 },
+    { "agent": "Retrieval Agent", "tool": "lookup_price", "query": "PV-100", "for_item": "Pressure Relief Valve", "results_found": 2 },
     { "agent": "Retrieval Agent", "tool": "get_delivery_policy", "query": null, "for_item": null, "results_found": 3 }
   ],
   "orchestrator_decisions": [
     { "step": 1, "next": "extraction", "reason": "RFQ has not been read yet", "decided_by": "forced", "options": ["extraction"] },
     { "step": 2, "next": "retrieval", "reason": "line items need catalogue, pricing and policy evidence", "decided_by": "forced", "options": ["retrieval"] },
     { "step": 3, "next": "validation_planning", "reason": "evidence is in; check it is enough and plan the next step", "decided_by": "forced", "options": ["validation_planning"] },
-    { "step": 4, "next": "retrieval", "reason": "weak evidence for stocked item(s) ['Industrial Valve IV-200', 'Pressure Relief Valve PV-100']; search again", "decided_by": "policy", "options": ["retrieval", "drafting"] },
-    { "step": 5, "next": "validation_planning", "reason": "evidence is in; check it is enough and plan the next step", "decided_by": "forced", "options": ["validation_planning"] },
-    { "step": 6, "next": "drafting", "reason": "validation & planning: escalate; draft the clarification request covering: ...", "decided_by": "forced", "options": ["drafting"] },
-    { "step": 7, "next": "critic", "reason": "draft written; review it before a human sees it", "decided_by": "forced", "options": ["critic"] },
-    { "step": 8, "next": "escalate", "reason": "draft is ready, but Validation & Planning found items only someone in the company can decide: ...", "decided_by": "forced", "options": ["escalate"] }
+    { "step": 4, "next": "drafting", "reason": "validation & planning: proceed; draft the priced quotation", "decided_by": "forced", "options": ["drafting"] },
+    { "step": 5, "next": "critic", "reason": "draft written; review it before a human sees it", "decided_by": "forced", "options": ["critic"] },
+    { "step": 6, "next": "finish", "reason": "critic approved the draft; ready for human approval", "decided_by": "forced", "options": ["finish"] }
   ],
   "completed_agents": ["extraction", "retrieval", "validation_planning", "drafting", "critic"],
-  "attempts": { "extraction": 1, "retrieval": 2, "validation_planning": 2, "drafting": 1, "critic": 1 },
-  "next_agent": "escalate",
-  "step": 8
+  "attempts": { "extraction": 1, "retrieval": 1, "validation_planning": 1, "drafting": 1, "critic": 1 },
+  "next_agent": "finish",
+  "step": 6
 }
 ```
 
 *(`retrieved_evidence` — 9 real chunks from `product_catalog_2026.md`, `approved_pricing_2026.csv`
-and `commercial_delivery_terms.md` — and the full `messages` handoff log are omitted here only for
-length; both are present verbatim in the raw captured run and follow the schema in §2.1.)*
+and `commercial_delivery_terms.md`, with real embedding similarity scores between 0.5679 and
+0.7573 — and the full `messages` handoff log are omitted here only for length; both are present
+verbatim in the raw captured run and follow the schema in §2.1.)*
 
-**Reading this trace end-to-end:** step 4 is the one genuinely interesting routing decision —
-with evidence retrieved but confidence still below threshold, two moves were legal
-(`retrieval` again, or go straight to `drafting`), and the policy fallback picked `retrieval`
-(an LLM would choose here in a non-demo run; see `orchestrator._ask_llm`). Every other step had
-exactly one legal move (`decided_by: "forced"`), which is itself evidence that the guardrail in
-`legal_moves()` is doing real work — most of the time there is nothing to decide, because the
-state only ever makes one next step sensible.
+**Reading this trace end-to-end:** every step had exactly one legal next move
+(`decided_by: "forced"`), because the evidence was strong enough on the first pass that no retry
+or escalation branch was ever reachable — this is the "nothing surprising happens" case the
+architecture is meant to handle quietly. The one interesting signal is in `critic_feedback`: the
+rules checks found nothing wrong (arithmetic, grounding, and citation checks all pass), but the
+LLM review still flagged a real gap — the draft never mentions a delivery schedule even though the
+RFQ asked for one — which is exactly the kind of judgement call the critic's LLM pass exists to
+catch and the deterministic rules alone would miss.
