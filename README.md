@@ -118,13 +118,22 @@ Every decision is stored in `state.orchestrator_decisions` (`step`, `next`, `rea
 | Agent | File | What it does | Uses LLM | Owner |
 |---|---|---|---|---|
 | Supervisor | `agents/orchestrator.py` | Chooses the next agent, retries, escalates, logs every decision | Yes, at branch points | Vedant |
-| 1. Requirement Analysis | `agents/requirement_agent.py` | Turns RFQ text into structured line items and commercial terms | Yes | Samartha |
-| 2. Retrieval | `agents/retrieval_agent.py` | Calls `search_catalogue`, `lookup_price`, `get_delivery_policy` over ChromaDB | No (tool calls) | Atharva |
+| 1. Requirement Analysis | `agents/requirement_agent.py`, `agents/requirement_check.py` | Turns RFQ text into structured line items and commercial terms; resolves product codes against the catalogue; checks its own extraction against the RFQ and re-reads if something is missing | Yes | Atharva (extraction, catalogue codes), Vedant (self-check) |
+| 2. Retrieval | `agents/retrieval_agent.py` | The LLM plans which of `search_catalogue`, `lookup_price`, `get_delivery_policy` to call and with what query; re-searches when sent back; falls back to a default plan if the LLM is down | Yes | Atharva |
 | 3. Validation & Planning | `agents/validation_planning_agent.py` | Checks the evidence is enough; finds missing, conflicting or ambiguous information; decides **proceed / clarify / escalate** | Yes | Vedant |
-| 4. Quotation & Communication | `agents/drafting_agent.py` | Prices lines from the approved CSV with citations, or writes clarification questions and escalation notes | No | Tej |
+| 4. Quotation & Communication | `agents/drafting_agent.py` | Plans its objective (quote, clarify, revise), prices lines from the approved CSV with citations, or writes clarification questions and escalation notes | Yes (planning) | Tej |
 | Critic (beyond the proposal) | `agents/critic_agent.py` | Reviews the draft: rule checks + LLM policy review; returns approve / revise | Yes | Vedant |
 
 Agents 1–4 are the four agents of the approved proposal. The supervisor and the critic were added on top.
+
+**Requirement Analysis self-check** (`agents/requirement_check.py`). Before any other agent uses the
+extraction, it is checked against the RFQ text in code: every quantity must appear in the RFQ and not
+be one end of a range, every catalogue code the RFQ mentions must have been extracted, and payment or
+delivery terms the RFQ states must not be empty. If something is wrong, the agent re-reads the RFQ
+with a prompt listing exactly those problems (at most twice, keeping whichever version has fewer
+problems). A quantity that is really a range ("around 30 to 40") is cleared, so Validation & Planning
+asks the customer instead of quoting a number they never committed to. Every check and re-read is in
+the trace as a `self-check` message.
 
 The **Validation & Planning Agent** (`run_validation_planning_agent`) works in three steps:
 
@@ -305,6 +314,10 @@ escalates to a human with the error in the note; the critic and Validation & Pla
 their rule checks only. A circuit breaker skips the LLM for 60 s after a failure, so an outage costs
 about a second per RFQ instead of minutes of timeouts. Demo mode is never switched on by a failure.
 
+`GET /api/health` reports the LLM's current state (`live`, `degraded` while the circuit breaker is
+open, or `demo`), the models in use and the failure count, so it can be checked during a demo. The raw
+provider error is left out because it can contain account identifiers.
+
 ## 10. Tests
 
 ```bash
@@ -312,13 +325,14 @@ cd backend
 python -m pytest -q
 ```
 
-11 test modules, 125 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
+15 test modules, 146 tests: health, chunking, retrieval, abstention, the end-to-end workflow, supervisor
 routing (`test_orchestrator.py` — retries, escalation, re-extraction, re-search rules, LLM-vs-policy
 choice, the critic revision loop and the Validation & Planning decision), the Validation & Planning
 agent (`test_validation_planning.py`) and the critic (`test_critic.py` — price, discount, quantity, GST, citation checks and the
 safeguards on LLM findings), the LLM client's failure handling (`test_llm_client.py`), bad input
 end to end, including the RFQ API itself (`test_input_validation.py`), and customer memory against a
-real database schema (`test_customer_memory.py`). Agent tests
+real database schema (`test_customer_memory.py`), the Requirement Analysis self-check and re-read
+(`test_requirement_check.py`), and per-agent metrics (`test_agent_metrics.py`). Agent tests
 use fake agents or a fake LLM, and `tests/conftest.py` forces demo mode, so the suite never calls a real
 provider even when `backend/.env` holds a key.
 
@@ -335,23 +349,35 @@ final status and the expected Validation & Planning decision:
 | eval_001 | Complete RFQ, credit-approved customer | proceed → priced quote |
 | eval_002 | SS316 grade, 90-day credit, 3-day doorstep delivery | escalate |
 | eval_003 | Bulk order crossing both discount thresholds | proceed, IV-200 at ₹4,275 and FP-50 at ₹765 |
-| eval_004 | Loosely named product, quantity "around 30 to 40" | clarify |
+| eval_004 | Loosely named product, quantity "around 30 to 40", new customer asking Net 30 | escalate (credit needs finance; quantity and product asked of the customer) |
 | eval_005 | Product not in the catalogue (butterfly valve) | escalate |
 | eval_006 | 5 units against a minimum order of 20 | clarify |
 | eval_007 | Net 60 credit | escalate (finance) |
 | eval_008 | General enquiry with no products | escalate, nothing priced |
 
-On Groq's free tier, running all eight back to back can exhaust the per-minute token quota; affected
-cases then escalate with "LLM unavailable" (by design). Leave a minute between full runs.
+Each run also scores every agent on its own job (`app/services/agent_metrics.py`, in the run's
+`agent_metrics`). Latest live run (9 Oct, Groq `openai/gpt-oss-120b` with `qwen/qwen3.8-27b` as
+fallback, 12 s between cases):
+
+| Agent | Metric | Result |
+|---|---|---|
+| Requirement Analysis | expected number of line items extracted | 100 % (8/8) |
+| Validation & Planning | decision correct (proceed / clarify / escalate) | 100 % (8/8) |
+| | known gaps detected | 100 % |
+| | false alarms on RFQs that should proceed | 0 % |
+| Quotation & Communication | expected unit prices exact | 100 % |
+| Critic | final drafts approved / average review rounds | 85.7 % / 1.14 |
+
+LLM output varies between runs, so individual cases can differ on a rerun. On Groq's free tier, running
+all eight back to back can exhaust the per-minute token quota; the client then switches to the fallback
+model, and if both are exhausted the affected cases escalate with "LLM unavailable" (by design).
 
 ## 12. Known limitations
 
-- The Quotation & Communication agent revises on the critic's findings by adding clarification
-  questions; some of its standard questions still describe a stocked grade as a mismatch.
-- The Requirement Analysis Agent's trace entries still use its older label ("Requirement Extraction
-  Agent").
+- Ambiguity flags in the Requirement Analysis Agent's output (quantity ranges, missing grades, vague
+  specs) are in progress; today ranges are caught by the self-check and the clean-up step.
 - Points the Validation & Planning Agent judges real but non-blocking (e.g. a port size, when every
-  size has the same price) are kept as `advisories`; the quotation does not show them yet.
+  size has the same price) are kept as `advisories`; showing them on the quotation is in review.
 - The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup
   above until the Docker setup is fixed.
 - The knowledge base is loaded when the server starts; scripts that skip startup see an empty store.
