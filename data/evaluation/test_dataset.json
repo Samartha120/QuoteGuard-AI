@@ -42,12 +42,12 @@
     "rfq_file": "demo_rfq_4_vague_quantity.txt",
     "customer": "Kaveri Pumps Pvt Ltd",
     "expected_status": "clarification_required",
-    "expected_decision": "clarify",
+    "expected_decision": "escalate",
     "expected_line_items": 2,
     "unsupported_fields": [
       "PV-100.quantity_range"
     ],
-    "notes": "Quantity is a range ('around 30 to 40') and the product is named loosely; the customer must confirm."
+    "notes": "Quantity is a range ('around 30 to 40') and the product is named loosely, so the customer must confirm; and a new customer (no history) asks for Net 30, which policy grants only to credit-approved accounts, so finance must decide. Changed from 'clarify' to 'escalate' on 9 Oct once customer memory existed."
   },
   {
     "eval_id": "eval_005",
