@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi } from '../api/authApi';
+import { authApi, LoginResponse, OTPResponse } from '../api/authApi';
 
 export interface User {
   id: string;
@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResponse | OTPResponse>;
   verifyLoginOtp: (email: string, otp: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
@@ -42,8 +42,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    await authApi.login(email, password);
-    // User is NOT set yet. OTP must be verified next.
+    const res = await authApi.login(email, password);
+    if ('user' in res && res.user) {
+      setUser(res.user);
+    }
+    return res;
   };
 
   const verifyLoginOtp = async (email: string, otp: string) => {

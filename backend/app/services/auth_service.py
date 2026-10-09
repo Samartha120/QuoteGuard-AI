@@ -59,13 +59,16 @@ def create_pending_user(db: Session, name: str, email: str, password: str) -> tu
         db.delete(pending)
         db.flush()
 
+    now = datetime.now(timezone.utc)
     pending_user = PendingUser(
         email=email.lower().strip(),
         name=name.strip(),
         hashed_password=hashed_pwd,
         hashed_otp=hashed_otp,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
-        attempts=0
+        expires_at=now + timedelta(minutes=5),
+        last_otp_sent_at=now,
+        attempts=0,
+        created_at=now,
     )
     db.add(pending_user)
     db.commit()

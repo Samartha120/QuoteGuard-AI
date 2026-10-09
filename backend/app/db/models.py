@@ -32,10 +32,13 @@ class User(Base):
     hashed_password = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     
-    # OTP fields for 2FA / Login
+    # OTP fields for 2FA / Login & Brute-force protection
     login_otp = Column(String, nullable=True)
     login_otp_expires_at = Column(DateTime, nullable=True)
+    login_otp_created_at = Column(DateTime, nullable=True)
     login_attempts = Column(Integer, default=0)
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime, nullable=True)
     
     company = relationship("Company", back_populates="users")
 
@@ -48,6 +51,7 @@ class PendingUser(Base):
     hashed_password = Column(String, nullable=False)
     hashed_otp = Column(String, nullable=False)
     expires_at = Column(DateTime, nullable=False)
+    last_otp_sent_at = Column(DateTime, default=utc_now)
     attempts = Column(Integer, default=0)
     created_at = Column(DateTime, default=utc_now)
 
@@ -196,3 +200,11 @@ class EvaluationRun(Base):
     avg_latency_ms = Column(Float, default=0.0)
     estimated_api_cost = Column(Float, default=0.0)
     summary_json = Column(JSON, nullable=True)
+
+class RevokedToken(Base):
+    __tablename__ = "revoked_tokens"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    jti = Column(String, unique=True, nullable=False, index=True)
+    revoked_at = Column(DateTime, default=utc_now)
+    expires_at = Column(DateTime, nullable=False)
