@@ -166,7 +166,8 @@ def test_falls_back_to_default_plan_when_llm_plan_is_unparseable():
          patch.object(retrieval_agent, "TOOL_FUNCTIONS", {
              "search_catalogue": lambda q: [{"chunk_id": "c1", "content": f"catalogue match for {q}"}],
              "lookup_price": lambda q: [{"chunk_id": "c2", "content": f"price for {q}"}],
-         }):
+         }), \
+         patch("app.agents.retrieval_agent.get_delivery_policy", return_value=[]):
         result = run_retrieval_agent(state)
 
     fallback_events = [c for c in result.tool_call_log if c.get("event") == "FALLBACK"]
