@@ -107,7 +107,8 @@ def rule_issues(state: AgentState) -> List[Dict[str, Any]]:
             else:
                 issues.append(_issue(name, "missing", "product is not in the approved catalogue; sales must "
                                      "decide whether to offer a custom or alternative item", "internal"))
-            continue
+                continue
+            row = near   # a loose name still needs a usable quantity
         if not isinstance(qty, (int, float)) or qty <= 0:
             notes = [n.split(": ", 1)[1] for n in reqs.get("normalization_notes", [])
                      if n.startswith(f"{name}: ")]
@@ -204,8 +205,10 @@ Does this block a correct, priced quotation?
 Answer true only when the PRICE depends on the customer's answer (different catalogue
 products or prices for different answers), or the product cannot be identified at all.
 Answer false when the catalogue already fixes the detail, when every option has the same
-approved price (the customer can confirm the detail on the purchase order), or when it is
-an internal check the supplier makes itself.
+approved price (the customer can confirm the detail on the purchase order), when it is
+an internal check the supplier makes itself, or when the RFQ explicitly asks for the
+company's standard term (e.g. ex-works delivery: the customer collects, so where their
+site is does not change the quote).
 Reply with JSON only: {{"blocks_quote": true or false, "why": "<one sentence>"}}"""
 
 
@@ -244,6 +247,20 @@ def _single_price_product(item: str) -> bool:
     price per product code, so once product, quantity and grade are settled (all checked by
     rules) nothing else the customer could answer changes the price."""
     return bool(lookup_product("", item) or closest_product(item))
+
+
+_EX_WORKS_PUNE = re.compile(r"ex[\s-]*works\s+pune", re.I)
+
+
+def _is_delivery(issue: Dict[str, Any]) -> bool:
+    return bool(re.search(r"deliver|freight|dispatch|ex[\s-]*works", f"{issue['item']} {issue['detail']}", re.I))
+
+
+def _asks_standard_delivery(state: AgentState) -> bool:
+    """The RFQ explicitly asks for the company's standard delivery term (ex-works Pune,
+    commercial_delivery_terms.md §2). The customer collects, so where their site is, or
+    any other delivery detail, cannot change the quote."""
+    return bool(_EX_WORKS_PUNE.search(str((state.extracted_requirements or {}).get("delivery_terms") or "")))
 
 
 # questions about whether the customer is a known, credit-approved account
@@ -304,6 +321,8 @@ def llm_issues(state: AgentState, rules: List[Dict[str, Any]],
             drop = "already found by the rules"
         elif state.customer_memory.get("established") and _ACCOUNT_STATUS.search(issue["detail"]):
             drop = "customer memory: established account with approved quotations"
+        elif _is_delivery(issue) and _asks_standard_delivery(state):
+            drop = "the customer asked for the standard ex-works Pune term"
         elif i["kind"] == "conflicting":
             if not quote_found(i.get("evidence_quote"), evidence_blob):
                 drop = "evidence quote not found"
