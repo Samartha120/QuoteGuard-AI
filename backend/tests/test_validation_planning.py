@@ -191,3 +191,22 @@ def test_llm_outage_falls_back_to_rules(monkeypatch):
     monkeypatch.setattr(llm_client, "generate_completion", down)
     s = vpa.run_validation_planning_agent(make_state([item(material_grade="SS316")]))
     assert s.validation_plan["reviewed_by"] == ["rules"] and s.validation_plan["decision"] == "clarify"
+
+
+def test_loosely_named_product_still_needs_a_quantity():
+    issues = vpa.rule_issues(make_state([item(product_code=None, product_name="Pressure Relief Valves",
+                                              quantity=None)]))
+    assert ("ambiguous", "customer") in kinds(issues) and ("missing", "customer") in kinds(issues)
+
+
+def test_delivery_question_is_dropped_when_customer_asks_for_ex_works_pune(monkeypatch):
+    site = {"item": "delivery", "kind": "ambiguous", "resolver": "customer",
+            "detail": "RFQ mentions a project site in Vadodara but asks for ex-works Pune",
+            "rfq_quote": "Delivery: ex-works Pune is fine"}
+    fake_llm(monkeypatch, [site])
+    st = make_state()
+    st.extracted_requirements["delivery_terms"] = "ex-works Pune is fine"
+    assert vpa.run_validation_planning_agent(st).validation_plan["decision"] == "proceed"
+    st2 = make_state()
+    st2.extracted_requirements["delivery_terms"] = "doorstep delivery to Surat in 3 days"
+    assert vpa.run_validation_planning_agent(st2).validation_plan["decision"] == "clarify"
