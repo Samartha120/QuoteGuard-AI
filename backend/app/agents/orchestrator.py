@@ -41,6 +41,7 @@ from app.agents.drafting_agent import run_drafting_agent
 from app.agents.critic_agent import run_critic_agent
 from app.tools.pricing_catalog import approved_grades
 from app.core.input_validation import normalize_requirements
+from app.agents.requirement_check import self_check
 from app.llm.client import llm_client
 from app.llm.structured_output import clean_and_parse_json
 from app.core.config import settings
@@ -54,10 +55,12 @@ ESCALATE = "escalate"
 AGENT_ORDER = ["extraction", "retrieval", "validation_planning", "drafting", "critic"]
 
 def extract_and_normalize(state: AgentState) -> AgentState:
-    """Run Requirement Analysis, then clean its output before any other agent sees it:
-    quantities given as text or ranges, non-positive quantities, and products the RFQ
-    never mentions (an LLM can invent them, especially on gibberish input)."""
+    """Run Requirement Analysis, let it check its own extraction against the RFQ and
+    re-read if needed (requirement_check.self_check), then clean the output before any
+    other agent sees it: quantities given as text or ranges, non-positive quantities, and
+    products the RFQ never mentions (an LLM can invent them, especially on gibberish input)."""
     state = run_requirement_agent(state)
+    state = self_check(state)
     state.extracted_requirements, notes = normalize_requirements(state.extracted_requirements, state.raw_text)
     if notes:
         state.messages.append({"step": state.step, "from": SUPERVISOR, "to": "extraction",
