@@ -50,7 +50,7 @@ def test_customer_name(name, ok):
     ("rfq", b"hello", 415),
     ("rfq.pdf", b"", 422),
     ("rfq.txt", b"a" * (iv.MAX_UPLOAD_BYTES + 1), 413),
-])
+], ids=["exe", "no-ext", "empty-pdf", "oversized"])
 def test_bad_uploads_are_rejected(filename, content, code):
     with pytest.raises(iv.InputError) as e:
         iv.validate_upload(filename, content)

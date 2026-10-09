@@ -16,20 +16,28 @@ def _bad_input(e: InputError) -> HTTPException:
     return HTTPException(status_code=e.status_code, detail=str(e))
 
 
+from app.api.deps import get_current_user
+from app.db.models import User
+
 @router.post("", response_model=RFQResponse, status_code=status.HTTP_201_CREATED)
-def create_new_rfq(rfq_in: RFQCreate, db: Session = Depends(get_db)):
+def create_new_rfq(
+    rfq_in: RFQCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         rfq_in.customer_name = validate_customer_name(rfq_in.customer_name)
         rfq_in.raw_text = validate_rfq_text(rfq_in.raw_text)
     except InputError as e:
         raise _bad_input(e)
-    return create_rfq(db=db, rfq_in=rfq_in)
+    return create_rfq(db=db, rfq_in=rfq_in, company_id=getattr(current_user, "company_id", None) or "comp_vertex_001")
 
 @router.post("/upload", response_model=RFQResponse, status_code=status.HTTP_201_CREATED)
 def upload_rfq_file(
     customer_name: str = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     content = file.file.read()
     try:
@@ -57,7 +65,7 @@ def upload_rfq_file(
         raw_text=raw_text,
         file_name=file.filename
     )
-    return create_rfq(db=db, rfq_in=rfq_in)
+    return create_rfq(db=db, rfq_in=rfq_in, company_id=getattr(current_user, "company_id", None) or "comp_vertex_001")
 
 @router.get("", response_model=List[RFQResponse])
 def list_rfqs(db: Session = Depends(get_db)):
