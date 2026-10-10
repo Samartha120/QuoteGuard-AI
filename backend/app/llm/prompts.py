@@ -73,6 +73,23 @@ Perform field-by-field verification:
 Return structured validation JSON.
 """
 
+RERANK_PROMPT = """Rank these retrieved knowledge-base chunks by how useful each one actually is for
+answering this search query. A chunk can score well on text similarity to the query and still be
+the wrong one — pick the chunks a human expert would actually use, not just the closest wording.
+
+QUERY:
+{query}
+
+CANDIDATE CHUNKS (one per line, "<chunk_id>: <content>"):
+{candidates}
+
+Return ONLY JSON in this exact shape, no other text:
+{{"ranked_chunk_ids": ["<most useful chunk_id>", "<next>", ...]}}
+
+List every chunk_id above exactly once, most useful first. Do not invent a chunk_id that is not
+listed above.
+"""
+
 DRAFTING_PROMPT = """Generate a formal B2B quotation draft OR clarification request based on validation results:
 
 VALIDATION RESULTS:
