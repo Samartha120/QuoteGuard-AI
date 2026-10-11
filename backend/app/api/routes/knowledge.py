@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
-from app.schemas.knowledge import KnowledgeDocumentResponse, DocumentUploadResponse, DocumentChunkSchema
+from app.schemas.knowledge import (KnowledgeDocumentResponse, DocumentUploadResponse, DocumentChunkSchema,
+                                    KnowledgeRefreshResponse)
 from app.services.knowledge_service import get_all_documents, upload_knowledge_document, delete_document, get_document_chunks
+from app.services.knowledge_refresh_service import refresh_knowledge_base
 from app.utils.file_utils import save_uploaded_file
 from app.core.input_validation import validate_upload, InputError
 from app.core.logging import logger
@@ -68,6 +70,49 @@ def upload_document(
         raise HTTPException(
             status_code=500,
             detail="Document ingestion failed. Please verify the document format and try again.",
+        )
+
+
+@router.post(
+    "/refresh",
+    response_model=KnowledgeRefreshResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles("sales_manager", "admin"))],
+)
+def refresh_document(
+    document_type: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Uploads a new catalogue/pricing/policy document the same way /upload does, then
+    re-quotes every existing RFQ against the refreshed knowledge base and reports which ones
+    would now be quoted differently (new price, new grounded status, or a line item that's
+    newly groundable or newly abstained)."""
+    doc_type_clean = document_type.strip().lower()
+    if doc_type_clean not in ALLOWED_DOC_TYPES:
+        allowed_str = ", ".join(sorted(ALLOWED_DOC_TYPES))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid document type '{document_type}'. Allowed: {allowed_str}.",
+        )
+
+    try:
+        content = file.file.read()
+        validate_upload(file.filename, content)
+        file_path = save_uploaded_file(content, file.filename)
+        return refresh_knowledge_base(
+            db=db,
+            file_path=file_path,
+            filename=file.filename,
+            doc_type=doc_type_clean,
+        )
+    except InputError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
+    except Exception as e:
+        logger.exception(f"Knowledge refresh failed for {file.filename}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Knowledge base refresh failed. Please verify the document format and try again.",
         )
 
 
