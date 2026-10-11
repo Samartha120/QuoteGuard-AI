@@ -10,6 +10,13 @@ os.environ["DEMO_MODE"] = "true"
 import pytest
 
 
+@pytest.fixture(autouse=True, scope="session")
+def setup_test_database():
+    """Ensure database tables and initial seed data exist for the test suite."""
+    from app.db.init_db import init_db
+    init_db()
+
+
 @pytest.fixture(autouse=True)
 def no_customer_memory(monkeypatch):
     """Keep tests independent of whatever is in the local database: the Validation &
