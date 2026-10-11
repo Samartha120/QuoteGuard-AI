@@ -1,0 +1,164 @@
+{
+  "rfq_id": "demo-run-groq-1",
+  "customer_name": "Apex Engineering Works Ltd.",
+  "customer_email": "procurement@apexeng.co.in",
+  "extracted_requirements": {
+    "customer_name": "Apex Engineering Works Ltd.",
+    "customer_email": "procurement@apexeng.co.in",
+    "line_items": [
+      {
+        "product_name": "Industrial Valve",
+        "product_code": "IV-200",
+        "requested_spec": "Standard SS304 body with PTFE seals, PN16 rating, 2-inch (DN50) port",
+        "material_grade": "SS304",
+        "quantity": 20,
+        "status": "verified"
+      },
+      {
+        "product_name": "Pressure Relief Valve",
+        "product_code": "PV-100",
+        "requested_spec": "Standard SS304 seat",
+        "material_grade": "SS304",
+        "quantity": 15,
+        "status": "verified"
+      }
+    ],
+    "delivery_terms": "Standard ex-works Pune delivery terms.",
+    "payment_terms": "Net 30 days credit (Apex is an existing credit‑approved account with Vertex)."
+  },
+  "overall_confidence": 0.86,
+  "grounded_status": "GROUNDED",
+  "abstention_required": false,
+  "validation_plan": {
+    "decision": "proceed",
+    "issues": [],
+    "advisories": [
+      {
+        "item": "quotation terms",
+        "note": "confirm before sending",
+        "detail": "Please confirm the quoted requirements and terms on your PO."
+      }
+    ],
+    "reviewed_by": ["rules", "llm"]
+  },
+  "quotation_draft": {
+    "customer_name": "Apex Engineering Works Ltd.",
+    "subtotal": 132000.0,
+    "tax_amount": 23760.0,
+    "total_amount": 155760.0,
+    "status": "PENDING_APPROVAL",
+    "line_items": [
+      {
+        "product_code": "IV-200",
+        "product_name": "Industrial Valve IV-200",
+        "material_grade": "SS304",
+        "quantity": 20,
+        "unit_price": 4500.0,
+        "total_price": 90000.0,
+        "confidence_score": 0.86,
+        "status": "verified",
+        "citations": [
+          {
+            "field_name": "unit_price",
+            "source_filename": "commercial_delivery_terms.md",
+            "source_chunk_id": "86ea3001-0cdf-4ca3-9f58-e664853bab49_chunk_0",
+            "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd. ## Standard Commercial & Delivery Terms Policy (2026)",
+            "retrieval_score": 0.7573
+          }
+        ]
+      },
+      {
+        "product_code": "PV-100",
+        "product_name": "Pressure Relief Valve PV-100",
+        "material_grade": "SS304",
+        "quantity": 15,
+        "unit_price": 2800.0,
+        "total_price": 42000.0,
+        "confidence_score": 0.86,
+        "status": "verified",
+        "citations": [
+          {
+            "field_name": "unit_price",
+            "source_filename": "commercial_delivery_terms.md",
+            "source_chunk_id": "86ea3001-0cdf-4ca3-9f58-e664853bab49_chunk_0",
+            "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd. ## Standard Commercial & Delivery Terms Policy (2026)",
+            "retrieval_score": 0.7573
+          }
+        ]
+      }
+    ]
+  },
+  "clarification_questions": [],
+  "escalation_notes": null,
+  "critic_feedback": {
+    "verdict": "approve",
+    "issues": [
+      {
+        "line": "terms",
+        "check": "llm_review",
+        "detail": "Draft quotation does not provide a delivery schedule, which the customer explicitly requested.",
+        "fix_by": "drafting",
+        "severity": "warning",
+        "source": "llm"
+      }
+    ],
+    "fix_by": [],
+    "reviewed_by": ["rules", "llm"],
+    "summary": "Quotation missing the requested delivery schedule.",
+    "round": 1
+  },
+  "agent_traces": [
+    {
+      "agent_name": "Requirement Extraction Agent",
+      "status": "SUCCESS",
+      "output_summary": "Extracted 2 line items and commercial terms for Apex Engineering Works Ltd.",
+      "execution_time_ms": 2882
+    },
+    {
+      "agent_name": "Retrieval Agent",
+      "status": "SUCCESS",
+      "output_summary": "Executed 5 LLM-selected tool call(s) this run, retrieving 9 unique evidence chunks.",
+      "execution_time_ms": 10988
+    },
+    {
+      "agent_name": "Validation & Planning Agent",
+      "status": "SUCCESS",
+      "output_summary": "Decision=proceed. Confidence=0.86. 0 issue(s), reviewed by rules+llm",
+      "execution_time_ms": 2099
+    },
+    {
+      "agent_name": "Quotation & Communication Agent",
+      "status": "ACTION",
+      "step": "task_analysis",
+      "decision": "create_grounded_quotation",
+      "execution_time_ms": 0
+    },
+    {
+      "agent_name": "Quotation & Communication Agent",
+      "status": "SUCCESS",
+      "output_summary": "Agent decision=quotation_ready. Status=PENDING_APPROVAL. Line Items=2. Clarifications=0.",
+      "execution_time_ms": 0
+    },
+    {
+      "agent_name": "Critic Agent",
+      "status": "SUCCESS",
+      "output_summary": "Verdict=approve (0 errors, 1 warnings; reviewed by rules+llm)",
+      "execution_time_ms": 1957
+    }
+  ],
+  "tool_call_log": [
+    { "agent": "Retrieval Agent", "tool": "search_catalogue", "query": "IV-200", "for_item": "Industrial Valve", "results_found": 3 },
+    { "agent": "Retrieval Agent", "tool": "lookup_price", "query": "IV-200", "for_item": "Industrial Valve", "results_found": 2 },
+    { "agent": "Retrieval Agent", "tool": "search_catalogue", "query": "PV-100", "for_item": "Pressure Relief Valve", "results_found": 3 },
+    { "agent": "Retrieval Agent", "tool": "lookup_price", "query": "PV-100", "for_item": "Pressure Relief Valve", "results_found": 2 },
+    { "agent": "Retrieval Agent", "tool": "get_delivery_policy", "query": null, "for_item": null, "results_found": 3 }
+  ],
+  "orchestrator_decisions": [
+    { "step": 1, "next": "extraction", "reason": "RFQ has not been read yet", "decided_by": "forced" },
+    { "step": 2, "next": "retrieval", "reason": "line items need catalogue, pricing and policy evidence", "decided_by": "forced" },
+    { "step": 3, "next": "validation_planning", "reason": "evidence is in; check it is enough and plan the next step", "decided_by": "forced" },
+    { "step": 4, "next": "drafting", "reason": "validation & planning: proceed; draft the priced quotation", "decided_by": "forced" },
+    { "step": 5, "next": "critic", "reason": "draft written; review it before a human sees it", "decided_by": "forced" },
+    { "step": 6, "next": "finish", "reason": "critic approved the draft; ready for human approval", "decided_by": "forced" }
+  ]
+}
