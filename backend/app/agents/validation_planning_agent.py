@@ -369,13 +369,6 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
         state.abstention_required = True
         state.grounded_status = "ABSTAINED"
 
-    if decision == "proceed":
-        advisories.append({
-            "item": "quotation terms",
-            "note": "confirm before sending",
-            "detail": "Please confirm the quoted requirements and terms on your PO."
-        })
-
     state.validation_plan = {
         "decision": decision,
         "issues": issues,

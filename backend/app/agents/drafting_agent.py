@@ -204,6 +204,20 @@ def _build_abstention_draft(
         ]
     )
 
+    # If all issues are internal (e.g. credit limit, approval policy), ensure a holding question is present
+    # so clarification_questions is not empty (which prevents Critic revision loops).
+    if not clarification_questions:
+        internal_issues = [
+            str(i.get("detail", "")).strip()
+            for i in (state.validation_plan or {}).get("issues", [])
+            if str(i.get("detail", "")).strip()
+        ]
+        detail_msg = f" ({'; '.join(internal_issues[:2])})" if internal_issues else ""
+        clarification_questions.append(
+            f"Commercial Advisory: Your inquiry involves terms requiring commercial review{detail_msg}. "
+            "Our sales engineering team has been notified and will follow up directly with you."
+        )
+
     for item in req_items:
         p_name = item.get("product_name", "")
         material = item.get("material_grade", "")
@@ -439,6 +453,61 @@ def _evaluate_results(
     }
 
 
+def generate_customer_email(
+    state: AgentState,
+    draft: Dict[str, Any],
+    clarification_questions: List[str],
+) -> str:
+    """
+    Generate a polite, professional customer email.
+
+    When requirements need clarification or special approval, the email politely
+    requests confirmation without quoting ungrounded prices or making promises
+    unsupported by company data.
+    When approved/priced, it generates a formal quotation cover email.
+    """
+    customer_name = state.customer_name or "Valued Customer"
+    rfq_id = state.rfq_id
+    status = draft.get("status", "PENDING_APPROVAL")
+
+    if status == "CLARIFICATION_REQUIRED" or state.abstention_required:
+        points = "\n".join(f"  • {q}" for q in clarification_questions) if clarification_questions else (
+            "  • Technical specifications and delivery requirements confirmation."
+        )
+        return (
+            f"Subject: Clarification on Your Request for Quotation ({rfq_id}) — Vertex Industrial Supplies\n\n"
+            f"Dear {customer_name},\n\n"
+            f"Thank you for reaching out to Vertex Industrial Supplies Pvt. Ltd. We have received your RFQ ({rfq_id}) "
+            f"and our commercial sales team has initiated the review.\n\n"
+            f"To ensure our formal quotation precisely aligns with your technical specifications and approved "
+            f"commercial terms, could you please clarify the following point(s)?\n\n"
+            f"{points}\n\n"
+            f"As soon as you confirm, we will promptly issue your formal quotation and delivery schedule.\n\n"
+            f"Warm regards,\n"
+            f"Commercial Sales & Engineering Team\n"
+            f"Vertex Industrial Supplies Pvt. Ltd.\n"
+            f"sales@vertexind.com | +91 20 2712 3456"
+        )
+
+    total_amount = draft.get("total_amount", 0.0)
+    items_count = len(draft.get("line_items", []))
+    return (
+        f"Subject: Formal Quotation ({rfq_id}) — Vertex Industrial Supplies Pvt. Ltd.\n\n"
+        f"Dear {customer_name},\n\n"
+        f"Thank you for your inquiry. Vertex Industrial Supplies Pvt. Ltd. is pleased to present our formal quotation "
+        f"({rfq_id}) for the supply of {items_count} item(s) as requested.\n\n"
+        f"Commercial Summary:\n"
+        f"  • Total Amount: INR {total_amount:,.2f} (Inclusive of 18% GST)\n"
+        f"  • Validity: 30 days from date of issuance\n"
+        f"  • Delivery Terms: As per Vertex Standard Commercial Policy (2026)\n\n"
+        f"Please review the attached formal quotation. To proceed, please confirm the requirements on your Purchase Order (PO).\n\n"
+        f"Warm regards,\n"
+        f"Commercial Sales & Engineering Team\n"
+        f"Vertex Industrial Supplies Pvt. Ltd.\n"
+        f"sales@vertexind.com | +91 20 2712 3456"
+    )
+
+
 def run_drafting_agent(state: AgentState) -> AgentState:
     """
     Quotation & Communication Agent.
@@ -591,11 +660,21 @@ def run_drafting_agent(state: AgentState) -> AgentState:
     # ------------------------------------------------------------------ #
     state.clarification_questions = clarification_questions
 
-    # Preserve validation advisories in the final quotation so the
-    # customer-facing response can display them.
-    draft["advisories"] = list(
-        (state.validation_plan or {}).get("advisories", [])
-    )
+    # Preserve validation advisories and add PO confirmation advisory to the quotation draft
+    advisories = list((state.validation_plan or {}).get("advisories", []))
+    if draft.get("status") == "PENDING_APPROVAL":
+        po_advisory = {
+            "item": "quotation terms",
+            "note": "confirm before sending",
+            "detail": "Please confirm the quoted requirements and terms on your PO."
+        }
+        if not any(a.get("item") == "quotation terms" for a in advisories):
+            advisories.append(po_advisory)
+    draft["advisories"] = advisories
+
+    # Generate customer communication email draft
+    email_draft = generate_customer_email(state, draft, clarification_questions)
+    draft["customer_email_draft"] = email_draft
 
     state.quotation_draft = draft
 

@@ -78,7 +78,9 @@ def process_rfq_workflow(db: Session, rfq_id: str) -> RFQ:
         overall_confidence=final_state.overall_confidence,
         grounded_status=final_state.grounded_status,
         clarification_questions=final_state.clarification_questions,
-        escalation_notes=final_state.escalation_notes
+        escalation_notes=final_state.escalation_notes,
+        advisories=draft.get("advisories", []),
+        customer_email_draft=draft.get("customer_email_draft")
     )
     db.add(quotation)
     db.commit()
