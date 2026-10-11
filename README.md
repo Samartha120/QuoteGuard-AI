@@ -352,8 +352,6 @@ cases then escalate with "LLM unavailable" (by design). Leave a minute between f
   Agent").
 - Points the Validation & Planning Agent judges real but non-blocking (e.g. a port size, when every
   size has the same price) are kept as `advisories`; the quotation does not show them yet.
-- The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup
-  above until the Docker setup is fixed.
 - The knowledge base is loaded when the server starts; scripts that skip startup see an empty store.
 
 ## 13. Team
