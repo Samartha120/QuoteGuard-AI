@@ -4,6 +4,7 @@ from app.llm.client import llm_client
 from app.llm.prompts import SYSTEM_PROMPT, REQUIREMENT_EXTRACTION_PROMPT
 from app.llm.structured_output import clean_and_parse_json
 from app.tools.pricing_catalog import lookup_product
+from app.agents.requirement_flags import extract_requirement_flags
 from app.core.logging import logger
 
 
@@ -52,6 +53,9 @@ def run_requirement_agent(state: AgentState) -> AgentState:
     line_items = parsed.get("line_items", [])
     corrected = _backfill_product_codes(line_items)
 
+    flags = extract_requirement_flags(line_items, raw_text=state.raw_text)
+    parsed["flags"] = flags
+
     state.extracted_requirements = parsed
     if parsed.get("customer_name"):
         state.customer_name = parsed["customer_name"]
@@ -63,6 +67,8 @@ def run_requirement_agent(state: AgentState) -> AgentState:
     summary = f"Extracted {len(line_items)} line items and commercial terms for {state.customer_name}"
     if corrected:
         summary += f"; resolved {corrected} product code(s) against the approved catalogue"
+    if flags:
+        summary += f"; flagged {len(flags)} ambiguous requirement(s)"
 
     state.agent_traces.append({
         "agent_name": "Requirement Analysis Agent",
