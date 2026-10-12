@@ -17,7 +17,7 @@ from app.core.middleware import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing QuoteGuard AI Database and Core Services...")
+    logger.info("Initializing QuoteGuard AI Database, SMTP Email, and Core Services...")
     init_db()
     
     # Auto-ingest default company knowledge if empty

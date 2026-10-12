@@ -34,6 +34,7 @@ export const Login: React.FC = () => {
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401) setError('Invalid email or password.');
+      else if (err?.response?.data?.detail) setError(err.response.data.detail);
       else if (err?.response) setError('Something went wrong. Please try again.');
       else setError('Cannot reach the server. Is the backend running on port 8000?');
     } finally {

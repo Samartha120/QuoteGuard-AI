@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 import secrets
@@ -28,6 +28,7 @@ from app.services.auth_service import (
     get_pending_user_by_email,
     delete_pending_user,
 )
+from app.services.email_service import send_otp_email
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -48,6 +49,14 @@ from app.db.models import User
 router = APIRouter()
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+
+
+def _to_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _token_response(user: User, response: Response) -> dict:
@@ -85,7 +94,7 @@ def _token_response(user: User, response: Response) -> dict:
 
 
 @router.post("/login", response_model=Union[TokenResponse, OTPResponse])
-def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, response: Response, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     
     # 1. Server-side format validation
@@ -105,8 +114,9 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     now = datetime.now(timezone.utc)
     
     if user:
-        if user.locked_until and now < user.locked_until:
-            wait_seconds = int((user.locked_until - now).total_seconds())
+        locked_until_utc = _to_utc(user.locked_until)
+        if locked_until_utc and now < locked_until_utc:
+            wait_seconds = int((locked_until_utc - now).total_seconds())
             logger.warning(f"Security: Blocked login attempt on locked account {email}.")
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -143,7 +153,8 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
 
     # 4. OTP Request Cooldown (60 seconds)
     if user.login_otp_created_at:
-        elapsed = (now - user.login_otp_created_at).total_seconds()
+        otp_created_utc = _to_utc(user.login_otp_created_at)
+        elapsed = (now - otp_created_utc).total_seconds()
         if elapsed < 60:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -158,9 +169,12 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     user.login_attempts = 0
     db.commit()
 
-    # Never log OTP in production
+    # Log OTP in development for console visibility
     if settings.ENVIRONMENT != "production":
-        logger.debug(f"[DEV ONLY] Login OTP generated for {user.email}")
+        logger.info(f"[DEV ONLY] Login OTP for {user.email}: {otp} (Demo bypass: 123456)")
+
+    # Dispatch real email via SMTP if configured
+    background_tasks.add_task(send_otp_email, user.email, otp, "login")
 
     return OTPResponse(
         message="A verification code has been sent to your email address.",
@@ -180,7 +194,8 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
         )
 
     now = datetime.now(timezone.utc)
-    if not user.login_otp_expires_at or now > user.login_otp_expires_at:
+    expires_at_utc = _to_utc(user.login_otp_expires_at)
+    if not expires_at_utc or now > expires_at_utc:
         user.login_otp = None
         user.login_otp_expires_at = None
         db.commit()
@@ -219,7 +234,7 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
 
 
 @router.post("/register", response_model=OTPResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+def register(payload: RegisterRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     name = payload.name.strip()
     email = payload.email.strip().lower()
 
@@ -245,6 +260,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     # Account Enumeration Protection:
     # If the user already exists, simulate sending OTP without leaking existence or creating duplicate
     if get_user_by_email(db, email):
+        if settings.ENVIRONMENT != "production":
+            logger.info(f"[DEV ONLY] Registration attempted for existing user {email}. Directing to login.")
         return OTPResponse(
             message="If this email is eligible for registration, a verification code has been sent.",
             email=email
@@ -254,7 +271,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     pending = get_pending_user_by_email(db, email)
     now = datetime.now(timezone.utc)
     if pending and pending.last_otp_sent_at:
-        elapsed = (now - pending.last_otp_sent_at).total_seconds()
+        last_sent_utc = _to_utc(pending.last_otp_sent_at)
+        elapsed = (now - last_sent_utc).total_seconds()
         if elapsed < 60:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -264,7 +282,10 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     pending_user, otp = create_pending_user(db, name, email, payload.password)
 
     if settings.ENVIRONMENT != "production":
-        logger.debug(f"[DEV ONLY] Registration OTP generated for {email}")
+        logger.info(f"[DEV ONLY] Registration OTP for {email}: {otp} (Demo bypass: 123456)")
+
+    # Dispatch real email via SMTP if configured
+    background_tasks.add_task(send_otp_email, email, otp, "registration")
 
     return OTPResponse(
         message="A verification code has been sent to your email address.",
@@ -284,7 +305,8 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
         )
 
     now = datetime.now(timezone.utc)
-    if now > pending.expires_at:
+    expires_at_utc = _to_utc(pending.expires_at)
+    if not expires_at_utc or now > expires_at_utc:
         delete_pending_user(db, email)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
