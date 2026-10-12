@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     # Google Sign-In (optional). Set GOOGLE_CLIENT_ID to enable the
     # "Continue with Google" button; verification uses Google's public keys.
     GOOGLE_CLIENT_ID: str = ""
+
+    # SMTP / Email Settings (for real OTP delivery to Gmail / Outlook / etc.)
+    SMTP_ENABLED: bool = False
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "QuoteGuard AI"
+    SMTP_TLS: bool = True
     
     # Vector DB
     CHROMA_PERSIST_DIRECTORY: str = "./data/chroma_db"
