@@ -158,3 +158,135 @@ def test_run_requirement_agent_end_to_end(monkeypatch):
     assert len(traces) == 1
     assert traces[0]["status"] == "SUCCESS"
     assert "flagged" in traces[0]["output_summary"]
+
+
+def test_run_requirement_agent_offline_heuristic_fallback(monkeypatch):
+    """Verify zero-fail resilience: when LLM raises LLMUnavailableError, the agent
+    falls back to deterministic NLP heuristic extraction without crashing."""
+    from app.llm.client import LLMUnavailableError
+
+    def failing_llm(system_prompt, user_prompt):
+        raise LLMUnavailableError("Groq/OpenAI provider offline or circuit-broken")
+
+    monkeypatch.setattr(llm_client, "generate_completion", failing_llm)
+
+    state = AgentState(
+        rfq_id="TEST-FALLBACK-002",
+        raw_text="Customer Name: Narmada Pipeline Projects Pvt. Ltd.\n"
+                 "Contact Person: Meera Iyer (Purchase Head)\n"
+                 "Email: purchase@narmadapipeline.in\n"
+                 "Please quote:\n"
+                 "1. Industrial Valve IV-200, SS304 body, PN16 - Quantity: 60 units\n"
+                 "2. Flange Plate FP-50, Carbon Steel - Quantity: 250 units\n"
+                 "Terms: Net 30 days, Ex-works Pune."
+    )
+
+    result_state = run_requirement_agent(state)
+
+    assert result_state.customer_name == "Narmada Pipeline Projects Pvt. Ltd."
+    assert result_state.customer_email == "purchase@narmadapipeline.in"
+    
+    line_items = result_state.extracted_requirements.get("line_items", [])
+    assert len(line_items) == 2
+    
+    codes = [item["product_code"] for item in line_items]
+    assert "IV-200" in codes
+    assert "FP-50" in codes
+
+    trace = [t for t in result_state.agent_traces if t["agent_name"] == "Requirement Analysis Agent"][0]
+    assert trace["status"] == "SUCCESS"
+    assert trace["mode"] == "HEURISTIC_FALLBACK"
+
+
+def test_resolve_catalogue_specs_and_out_of_catalog():
+    """Verify catalog disambiguation tool identifies in-catalog vs out-of-catalog items."""
+    from app.agents.requirement_agent import resolve_catalogue_specs
+
+    items = [
+        {"product_name": "Pressure Relief Valve", "product_code": "", "material_grade": "ss304"},
+        {"product_name": "Butterfly Valve BV-150", "product_code": "BV-150", "material_grade": "Cast Iron"},
+    ]
+
+    res = resolve_catalogue_specs(items)
+
+    assert items[0]["product_code"] == "PV-100"
+    assert items[0]["in_catalogue"] is True
+    assert items[0]["material_grade"] == "SS304"
+
+    assert items[1]["product_code"] == "BV-150"
+    assert items[1]["in_catalogue"] is False
+    assert "BV-150" in res["unmatched_items"]
+
+
+def test_normalize_quantities_and_units():
+    """Verify standardizing string quantities and range preservation."""
+    from app.agents.requirement_agent import normalize_quantities_and_units
+
+    items = [
+        {"product_name": "IV-200", "quantity": "around 30 to 40 pieces"},
+        {"product_name": "PV-100", "quantity": "25 units"},
+        {"product_name": "FP-50", "quantity": 10},
+    ]
+
+    normalize_quantities_and_units(items)
+
+    assert items[0]["quantity"] == 40
+    assert items[0]["is_quantity_range"] is True
+    assert items[0]["raw_quantity"] == "around 30 to 40 pieces"
+
+    assert items[1]["quantity"] == 25
+    assert items[2]["quantity"] == 10
+
+
+def test_compute_extraction_confidence_scoring():
+    """Verify extraction confidence calculation penalizes missing fields and ambiguities."""
+    from app.agents.requirement_agent import compute_extraction_confidence
+
+    complete_reqs = {
+        "customer_name": "Apex Engineering",
+        "customer_email": "test@apex.com",
+        "line_items": [
+            {
+                "product_name": "Industrial Valve IV-200",
+                "product_code": "IV-200",
+                "material_grade": "SS304",
+                "quantity": 20,
+                "requested_spec": "Standard SS304 body with PTFE seals",
+            }
+        ]
+    }
+    res_complete = compute_extraction_confidence(complete_reqs, flags=[])
+    assert res_complete["overall_extraction_confidence"] >= 0.90
+
+    ambiguous_reqs = {
+        "customer_name": "Apex Engineering",
+        "line_items": [
+            {
+                "product_name": "Industrial Valve",
+                "product_code": None,
+                "material_grade": None,
+                "quantity": None,
+                "requested_spec": "standard",
+            }
+        ]
+    }
+    flags = [{"item": "Industrial Valve", "type": "missing_grade"}]
+    res_ambiguous = compute_extraction_confidence(ambiguous_reqs, flags=flags)
+    assert res_ambiguous["overall_extraction_confidence"] < 0.50
+
+
+def test_general_enquiry_zero_items_extraction():
+    """Verify that general inquiries (no products requested) return zero line items cleanly."""
+    from app.agents.requirement_agent import heuristic_extract_requirements
+
+    enquiry_text = (
+        "Dear Vertex Industrial Supplies,\n"
+        "We are Orbit Infra Developers. Could you please send us your latest product brochure "
+        "and company profile for our upcoming project?\n"
+        "Best regards,\nNeha Kulkarni\nOrbit Infra Developers"
+    )
+
+    parsed = heuristic_extract_requirements(enquiry_text)
+    assert parsed["customer_name"] == "Orbit Infra Developers"
+    assert len(parsed["line_items"]) == 0
+

@@ -170,7 +170,7 @@ class LLMClient:
             return json.dumps({"needs_policy_lookup": needs_policy, "item_plans": item_plans})
 
         # RFQ 1 Complete standard case
-        if "apex engineering" in prompt_lower or ("iv-200" in prompt_lower and "ss304" in prompt_lower):
+        if "apex engineering" in prompt_lower or "procurement@apexeng.co.in" in prompt_lower or "vadodara" in prompt_lower:
             if "extract" in prompt_lower:
                 return json.dumps({
                     "customer_name": "Apex Engineering Works Ltd.",
@@ -196,7 +196,7 @@ class LLMClient:
                 })
 
         # RFQ 2 Ambiguous / SS316 case
-        if "zenith chemical" in prompt_lower or "ss316" in prompt_lower:
+        if "zenith chemical" in prompt_lower or "a.sharma@zenithchem.com" in prompt_lower or "acid treatment" in prompt_lower:
             if "extract" in prompt_lower:
                 return json.dumps({
                     "customer_name": "Zenith Chemical Processing Ltd.",
@@ -212,6 +212,133 @@ class LLMClient:
                     ],
                     "payment_terms": "90 Days post-installation credit",
                     "delivery_terms": "Doorstep delivery within 3 days to Surat"
+                })
+
+        # RFQ 3 Bulk discount case
+        if "narmada pipeline" in prompt_lower or ("iv-200" in prompt_lower and "fp-50" in prompt_lower and "60" in prompt_lower):
+            if "extract" in prompt_lower:
+                return json.dumps({
+                    "customer_name": "Narmada Pipeline Projects Pvt. Ltd.",
+                    "customer_email": "purchase@narmadapipeline.in",
+                    "line_items": [
+                        {
+                            "product_name": "Industrial Valve IV-200",
+                            "product_code": "IV-200",
+                            "requested_spec": "SS304 body, PN16",
+                            "material_grade": "SS304",
+                            "quantity": 60
+                        },
+                        {
+                            "product_name": "Flange Plate FP-50",
+                            "product_code": "FP-50",
+                            "requested_spec": "Carbon Steel",
+                            "material_grade": "Carbon Steel",
+                            "quantity": 250
+                        }
+                    ],
+                    "payment_terms": "Net 30 days from date of invoice",
+                    "delivery_terms": "Ex-works Pune"
+                })
+
+        # RFQ 4 Vague quantity case
+        if "kaveri pumps" in prompt_lower or "around 30 to 40" in prompt_lower:
+            if "extract" in prompt_lower:
+                return json.dumps({
+                    "customer_name": "Kaveri Pumps Pvt Ltd",
+                    "customer_email": "sunil@kaveripumps.in",
+                    "line_items": [
+                        {
+                            "product_name": "Pressure Relief Valve PV-100",
+                            "product_code": "PV-100",
+                            "requested_spec": "around 30 to 40 pieces, standard grade",
+                            "material_grade": "SS304",
+                            "quantity": 40
+                        },
+                        {
+                            "product_name": "Flange Plate FP-50",
+                            "product_code": "FP-50",
+                            "requested_spec": "standard",
+                            "material_grade": "Carbon Steel",
+                            "quantity": 25
+                        }
+                    ],
+                    "payment_terms": "Net 30 days",
+                    "delivery_terms": "ex-works Pune"
+                })
+
+        # RFQ 5 Unknown product case
+        if "deccan sugar" in prompt_lower or "bv-150" in prompt_lower:
+            if "extract" in prompt_lower:
+                return json.dumps({
+                    "customer_name": "Deccan Sugar Mills Ltd.",
+                    "customer_email": "arvind.patil@deccansugar.com",
+                    "line_items": [
+                        {
+                            "product_name": "Butterfly Valve BV-150",
+                            "product_code": "BV-150",
+                            "requested_spec": "cast iron body, DN150",
+                            "material_grade": "Cast Iron",
+                            "quantity": 12
+                        },
+                        {
+                            "product_name": "Industrial Valve IV-200",
+                            "product_code": "IV-200",
+                            "requested_spec": "SS304",
+                            "material_grade": "SS304",
+                            "quantity": 10
+                        }
+                    ],
+                    "payment_terms": "Net 30 days",
+                    "delivery_terms": "ex-works Pune"
+                })
+
+        # RFQ 6 Below MOQ case
+        if "shree fabricators" in prompt_lower or "small trial lot" in prompt_lower or ("fp-50" in prompt_lower and "5 units" in prompt_lower):
+            if "extract" in prompt_lower:
+                return json.dumps({
+                    "customer_name": "Shree Fabricators",
+                    "customer_email": "kiran@shreefab.in",
+                    "line_items": [
+                        {
+                            "product_name": "Flange Plate FP-50",
+                            "product_code": "FP-50",
+                            "requested_spec": "Carbon Steel",
+                            "material_grade": "Carbon Steel",
+                            "quantity": 5
+                        }
+                    ],
+                    "payment_terms": "100% advance",
+                    "delivery_terms": "ex-works Pune"
+                })
+
+        # RFQ 7 Extended credit case
+        if "konkan chemicals" in prompt_lower or "net 60 days" in prompt_lower:
+            if "extract" in prompt_lower:
+                return json.dumps({
+                    "customer_name": "Konkan Chemicals Ltd.",
+                    "customer_email": "farah.shaikh@konkanchem.com",
+                    "line_items": [
+                        {
+                            "product_name": "Pressure Relief Valve PV-100",
+                            "product_code": "PV-100",
+                            "requested_spec": "SS304 seat",
+                            "material_grade": "SS304",
+                            "quantity": 20
+                        }
+                    ],
+                    "payment_terms": "Net 60 days credit from invoice",
+                    "delivery_terms": "ex-works Pune"
+                })
+
+        # RFQ 8 General enquiry case
+        if "orbit infra" in prompt_lower or "latest product brochure" in prompt_lower or "introductory meeting" in prompt_lower:
+            if "extract" in prompt_lower:
+                return json.dumps({
+                    "customer_name": "Orbit Infra Developers",
+                    "customer_email": None,
+                    "line_items": [],
+                    "payment_terms": None,
+                    "delivery_terms": None
                 })
 
         # Default fallback extraction
@@ -232,3 +359,4 @@ class LLMClient:
         })
 
 llm_client = LLMClient()
+
