@@ -388,9 +388,13 @@ def run_validation_planning_agent(state: AgentState) -> AgentState:
         state.abstention_required = True
         state.grounded_status = "ABSTAINED"
 
-    state.validation_plan = {"decision": decision, "issues": issues, "advisories": advisories,
-                             "reviewed_by": reviewed_by,
-                             "customer": describe_customer(state.customer_memory)}
+    state.validation_plan = {
+        "decision": decision,
+        "issues": issues,
+        "advisories": advisories,
+        "reviewed_by": reviewed_by,
+        "customer": describe_customer(state.customer_memory),
+    }
 
     head = "; ".join(f"{i['item']}: {i['detail']}" for i in issues[:3])
     elapsed = int((time.time() - start) * 1000)

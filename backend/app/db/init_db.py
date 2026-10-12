@@ -34,6 +34,13 @@ def _ensure_user_auth_columns():
             if "last_otp_sent_at" not in pending_cols:
                 conn.execute(text("ALTER TABLE pending_users ADD COLUMN last_otp_sent_at DATETIME"))
 
+        quot_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(quotations)"))}
+        if quot_cols:
+            if "advisories" not in quot_cols:
+                conn.execute(text("ALTER TABLE quotations ADD COLUMN advisories JSON"))
+            if "customer_email_draft" not in quot_cols:
+                conn.execute(text("ALTER TABLE quotations ADD COLUMN customer_email_draft TEXT"))
+
         conn.commit()
 
 

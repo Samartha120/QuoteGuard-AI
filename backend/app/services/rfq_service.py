@@ -44,10 +44,10 @@ def process_rfq_workflow(db: Session, rfq_id: str) -> RFQ:
     for trace in final_state.agent_traces:
         run_record = AgentRun(
             rfq_id=rfq.id,
-            agent_name=trace["agent_name"],
-            status=trace["status"],
-            output_summary=trace["output_summary"],
-            execution_time_ms=trace["execution_time_ms"]
+            agent_name=trace.get("agent_name", "Unknown Agent"),
+            status=trace.get("status", "SUCCESS"),
+            output_summary=trace.get("output_summary") or str(trace.get("decision", "")),
+            execution_time_ms=trace.get("execution_time_ms", 0)
         )
         db.add(run_record)
 
@@ -78,7 +78,9 @@ def process_rfq_workflow(db: Session, rfq_id: str) -> RFQ:
         overall_confidence=final_state.overall_confidence,
         grounded_status=final_state.grounded_status,
         clarification_questions=final_state.clarification_questions,
-        escalation_notes=final_state.escalation_notes
+        escalation_notes=final_state.escalation_notes,
+        advisories=draft.get("advisories", []),
+        customer_email_draft=draft.get("customer_email_draft")
     )
     db.add(quotation)
     db.commit()

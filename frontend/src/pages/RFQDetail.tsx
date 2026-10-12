@@ -10,7 +10,7 @@ import { rfqApi } from '../api/rfqApi';
 import { quotationApi } from '../api/quotationApi';
 import { RFQ } from '../types/rfq';
 import { Quotation } from '../types/quotation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export const RFQDetail: React.FC = () => {
@@ -23,6 +23,42 @@ export const RFQDetail: React.FC = () => {
   const resultsRef = useScrollReveal<HTMLDivElement>();
   const clarificationRef = useScrollReveal<HTMLDivElement>();
   const previewRef = useScrollReveal<HTMLDivElement>();
+
+  const handleExportTrace = () => {
+    if (!rfq) return;
+    const tracePayload = {
+      rfq_id: rfq.id,
+      customer_name: rfq.customer_name,
+      status: rfq.status,
+      exported_at: new Date().toISOString(),
+      raw_text: rfq.raw_text,
+      agent_runs: rfq.agent_runs || [],
+      requirements: rfq.requirements || [],
+      quotation: quotation ? {
+        quotation_number: quotation.quotation_number,
+        status: quotation.status,
+        grounded_status: quotation.grounded_status,
+        overall_confidence: quotation.overall_confidence,
+        subtotal: quotation.subtotal,
+        tax_amount: quotation.tax_amount,
+        total_amount: quotation.total_amount,
+        line_items: quotation.line_items,
+        advisories: quotation.advisories || [],
+        clarification_questions: quotation.clarification_questions || [],
+        customer_email_draft: quotation.customer_email_draft,
+      } : null,
+    };
+
+    const blob = new Blob([JSON.stringify(tracePayload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `execution_trace_${rfq.id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -42,9 +78,18 @@ export const RFQDetail: React.FC = () => {
 
   return (
     <PageContainer title={`RFQ — ${rfq.customer_name}`}>
-      <button ref={backBtnRef} className="btn btn-secondary reveal-up" style={{ marginBottom: '1rem' }} onClick={() => navigate('/')}>
-        <ArrowLeft size={16} /> Back to Dashboard
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <button ref={backBtnRef} className="btn btn-secondary reveal-up" onClick={() => navigate('/')}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </button>
+        <button
+          className="btn btn-secondary reveal-up"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem' }}
+          onClick={handleExportTrace}
+        >
+          <Download size={16} style={{ color: 'var(--accent-blue)' }} /> Export Execution Trace (JSON)
+        </button>
+      </div>
 
       <div ref={resultsRef} className="reveal-scale" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {rfq.agent_runs && <AgentProgress agentRuns={rfq.agent_runs} />}
