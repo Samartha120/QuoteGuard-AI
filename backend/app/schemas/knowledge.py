@@ -28,39 +28,3 @@ class DocumentUploadResponse(BaseModel):
     chunks_created: int
     indexed_status: str
     message: str
-
-
-class LineItemChangeSchema(BaseModel):
-    product_code: str
-    old_unit_price: Optional[float] = None
-    new_unit_price: Optional[float] = None
-    old_status: str
-    new_status: str
-
-
-class AffectedRfqSchema(BaseModel):
-    rfq_id: str
-    customer_name: str
-    changed: bool
-    previous_total_amount: Optional[float] = None
-    new_total_amount: float
-    previous_grounded_status: Optional[str] = None
-    new_grounded_status: str
-    line_item_changes: List[LineItemChangeSchema] = []
-
-
-class RequoteFailureSchema(BaseModel):
-    rfq_id: str
-    customer_name: str
-    error: str
-
-
-class KnowledgeRefreshResponse(BaseModel):
-    document_id: str
-    filename: str
-    document_type: str
-    chunks_created: int
-    indexed_status: str
-    affected_rfqs: List[AffectedRfqSchema] = []
-    unaffected_count: int = 0
-    requote_failures: List[RequoteFailureSchema] = []
