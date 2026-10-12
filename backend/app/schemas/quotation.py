@@ -47,6 +47,8 @@ class QuotationResponse(BaseModel):
     grounded_status: str # GROUNDED, UNVERIFIED, ABSTAINED
     clarification_questions: Optional[List[str]] = []
     escalation_notes: Optional[str] = None
+    advisories: Optional[List[dict]] = []
+    customer_email_draft: Optional[str] = None
     created_at: datetime
     line_items: List[LineItemSchema] = []
     approvals: List[ApprovalSchema] = []

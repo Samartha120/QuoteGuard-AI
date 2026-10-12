@@ -127,6 +127,8 @@ class Quotation(Base):
     grounded_status = Column(String, default="GROUNDED") # GROUNDED, UNVERIFIED, ABSTAINED
     clarification_questions = Column(JSON, nullable=True)
     escalation_notes = Column(Text, nullable=True)
+    advisories = Column(JSON, nullable=True)
+    customer_email_draft = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now)
     
     rfq = relationship("RFQ", back_populates="quotations")

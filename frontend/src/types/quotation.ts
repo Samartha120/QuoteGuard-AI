@@ -40,6 +40,8 @@ export interface Quotation {
   grounded_status: 'GROUNDED' | 'UNVERIFIED' | 'ABSTAINED';
   clarification_questions?: string[];
   escalation_notes?: string;
+  advisories?: Array<{ item: string; note?: string; detail: string }>;
+  customer_email_draft?: string;
   created_at: string;
   line_items: QuoteLineItem[];
   approvals: Approval[];

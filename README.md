@@ -118,7 +118,7 @@ Every decision is stored in `state.orchestrator_decisions` (`step`, `next`, `rea
 | Agent | File | What it does | Uses LLM | Owner |
 |---|---|---|---|---|
 | Supervisor | `agents/orchestrator.py` | Chooses the next agent, retries, escalates, logs every decision | Yes, at branch points | Vedant |
-| 1. Requirement Analysis | `agents/requirement_agent.py`, `agents/requirement_check.py` | Turns RFQ text into structured line items and commercial terms; resolves product codes against the catalogue; checks its own extraction against the RFQ and re-reads if something is missing | Yes | Atharva (extraction, catalogue codes), Vedant (self-check) |
+| 1. Requirement Analysis | `agents/requirement_agent.py`, `agents/requirement_check.py`, `agents/requirement_flags.py` | Turns RFQ text into structured line items and commercial terms; resolves product codes against the catalogue; checks its own extraction against the RFQ and re-reads if something is missing | Yes | Atharva (extraction, catalogue codes), Vedant (self-check), Tej (ambiguity flags) |
 | 2. Retrieval | `agents/retrieval_agent.py` | The LLM plans which of `search_catalogue`, `lookup_price`, `get_delivery_policy` to call and with what query; re-searches when sent back; falls back to a default plan if the LLM is down | Yes | Atharva |
 | 3. Validation & Planning | `agents/validation_planning_agent.py` | Checks the evidence is enough; finds missing, conflicting or ambiguous information; decides **proceed / clarify / escalate** | Yes | Vedant |
 | 4. Quotation & Communication | `agents/drafting_agent.py` | Plans its objective (quote, clarify, revise), prices lines from the approved CSV with citations, or writes clarification questions and escalation notes | Yes (planning) | Tej |
@@ -374,12 +374,6 @@ model, and if both are exhausted the affected cases escalate with "LLM unavailab
 
 ## 12. Known limitations
 
-- Ambiguity flags in the Requirement Analysis Agent's output (quantity ranges, missing grades, vague
-  specs) are in progress; today ranges are caught by the self-check and the clean-up step.
-- Points the Validation & Planning Agent judges real but non-blocking (e.g. a port size, when every
-  size has the same price) are kept as `advisories`; showing them on the quotation is in review.
-- The frontend Docker image serves on port 80 while `docker-compose.yml` maps 5173; use the local setup
-  above until the Docker setup is fixed.
 - The knowledge base is loaded when the server starts; scripts that skip startup see an empty store.
 
 ## 13. Team
