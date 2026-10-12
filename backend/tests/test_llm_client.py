@@ -105,3 +105,12 @@ def test_rate_limit_switches_to_the_fallback_model_without_waiting(make_client, 
 def test_rate_limit_on_the_last_model_is_waited_out(make_client):
     c = make_client({"main-model": [FakeError(429), "ok"]}, fallback="")
     assert ask(c) == "ok"
+
+
+def test_health_reports_llm_state_without_the_raw_error(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setattr(llm.llm_client, "last_error", "groq: 429 org_secret123")
+    body = TestClient(app).get("/api/health").json()
+    assert body["llm"]["state"] in {"live", "degraded", "demo"}
+    assert "last_error" not in body["llm"] and "org_secret123" not in str(body)
