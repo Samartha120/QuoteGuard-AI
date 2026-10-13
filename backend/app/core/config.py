@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEMO_MODE: bool = True
     GROUNDING_THRESHOLD: float = 0.80
+
+    # Hybrid retrieval (app/rag/retriever.py): the LLM re-rank pass adds 3-5 Groq calls per
+    # RFQ on top of the agents' own calls. Off by default so a demo doesn't burn through the
+    # Groq free-tier rate limit; turn on for a real precision comparison.
+    RETRIEVAL_RERANK: bool = False
     
     # LLM Settings
     OPENAI_API_KEY: str = ""
