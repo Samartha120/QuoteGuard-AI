@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { QuoteShieldLogo } from './QuoteShieldLogo';
-import { X, ShieldCheck, FileText } from 'lucide-react';
+import { X, ShieldCheck, FileText, Lock, ShieldAlert, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Footer: React.FC = () => {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && legalModal) {
+        setLegalModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [legalModal]);
 
   return (
     <footer className="app-footer animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
@@ -25,6 +35,14 @@ export const Footer: React.FC = () => {
             <div className="footer-desc">
               Source-Grounded Agentic Quotation Intelligence<br/>
               Platform for B2B MSMEs &amp; Enterprise Procurement.
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--accent-green)', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.5rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <ShieldCheck size={11} /> SOC2 Type II Aligned
+              </span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--accent-blue)', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '0.15rem 0.5rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Lock size={11} /> AES-256 Storage
+              </span>
             </div>
           </div>
 
@@ -55,7 +73,7 @@ export const Footer: React.FC = () => {
                 >
                   Data Privacy
                 </button>
-                <div className="footer-link-static">System Status: OK</div>
+                <div className="footer-link-static">System Status: OK (99.95%)</div>
               </div>
             </div>
             
@@ -66,7 +84,7 @@ export const Footer: React.FC = () => {
                   Operational
                 </div>
               </div>
-              <div className="footer-version">v1.2.0 · Enterprise</div>
+              <div className="footer-version">v1.2.0 · Enterprise Multi-Agent</div>
             </div>
           </div>
 
@@ -141,7 +159,7 @@ export const Footer: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   {legalModal === 'privacy' ? <ShieldCheck size={20} style={{ color: 'var(--accent-green)' }} /> : <FileText size={20} style={{ color: 'var(--accent-blue)' }} />}
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
                     {legalModal === 'privacy' ? 'Enterprise Privacy & Data Grounding' : 'Terms of Service & SLA'}
                   </h3>
                 </div>
@@ -183,7 +201,7 @@ export const Footer: React.FC = () => {
 
               <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
                 <button className="btn btn-secondary" onClick={() => setLegalModal(null)}>
-                  Close
+                  Close (Esc)
                 </button>
               </div>
             </motion.div>
