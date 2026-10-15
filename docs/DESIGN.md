@@ -213,6 +213,19 @@ project actually needed:
    agent's implementation, which is how the test suite exercises specific supervisor routing
    decisions (e.g. forcing a "weak evidence" result) without needing a real LLM call in every test.
 
-LangGraph was *not* used as a prompt-orchestration or multi-agent chat framework (there are no
-agent-to-agent conversations) — only for its graph/state-machine primitives, which is exactly the
-piece of LangGraph this project needed and nothing more.
+LangGraph was *not* used as a prompt-orchestration or multi-agent chat framework: agents communicate
+through structured task/result messages routed by the supervisor (`state.messages`), not free-form chat.
+It is used only for its graph/state-machine primitives, which is exactly the piece of LangGraph this
+project needed and nothing more.
+
+---
+
+## 5. Technology Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| LLM | Groq `openai/gpt-oss-120b`, fallback `qwen/qwen3.8-27b` (separate quotas, fast) |
+| Agents | LangGraph |
+| Retrieval | ChromaDB + `all-MiniLM-L6-v2` embeddings (hybrid keyword + vector ranking) |
+| Backend | FastAPI + SQLite |
+| Frontend | React + Vite |
