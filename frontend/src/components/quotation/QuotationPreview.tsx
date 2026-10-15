@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Quotation } from '../../types/quotation';
 import { QuoteLineItem } from './QuoteLineItem';
 import { ApprovalPanel } from './ApprovalPanel';
-import { FileText, Building2, Calendar, ShieldCheck, Mail, Copy, Check, Info } from 'lucide-react';
+import { FileText, Building2, Calendar, ShieldCheck, Mail, Copy, Check, Info, Clock, CreditCard, Share2 } from 'lucide-react';
 
 interface QuotationPreviewProps {
   quotation: Quotation;
@@ -12,8 +12,15 @@ interface QuotationPreviewProps {
   onDownloadPDF: () => void;
 }
 
-export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, onApprove, onReject, onRequestChanges, onDownloadPDF }) => {
+export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ 
+  quotation, 
+  onApprove, 
+  onReject, 
+  onRequestChanges, 
+  onDownloadPDF 
+}) => {
   const [copied, setCopied] = useState(false);
+  const [copiedSummary, setCopiedSummary] = useState(false);
 
   const handleCopyEmail = () => {
     if (quotation.customer_email_draft) {
@@ -22,6 +29,32 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
       setTimeout(() => setCopied(false), 2500);
     }
   };
+
+  const handleCopySummary = () => {
+    const summaryLines = [
+      `QUOTATION SUMMARY: ${quotation.quotation_number}`,
+      `Customer: ${quotation.customer_name}`,
+      `Date: ${new Date(quotation.created_at).toLocaleDateString()}`,
+      `Grounding Status: ${quotation.grounded_status}`,
+      '',
+      'ITEMS:',
+      ...quotation.line_items.map((item, idx) => 
+        `${idx + 1}. [${item.product_code}] ${item.product_name} - Qty: ${item.quantity} @ ₹${item.unit_price?.toLocaleString('en-IN') || '0'} = ₹${item.total_price?.toLocaleString('en-IN') || '0'}`
+      ),
+      '',
+      `Subtotal: ₹${quotation.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `Tax (18% GST): ₹${quotation.tax_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `Grand Total: ₹${quotation.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      '',
+      'Issued via QuoteGuard AI Enterprise Platform'
+    ].join('\n');
+
+    navigator.clipboard.writeText(summaryLines);
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2000);
+  };
+
+  const halfTax = quotation.tax_amount / 2;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -35,22 +68,82 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
       />
 
       <div className="card animate-fade-in" style={{ padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+        {/* Top Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>VERTEX INDUSTRIAL SUPPLIES PVT. LTD.</h2>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Authorized Industrial Flow Control Valves Distributor</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <Building2 size={20} style={{ color: 'var(--accent-blue)' }} />
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                VERTEX INDUSTRIAL SUPPLIES PVT. LTD.
+              </h2>
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Authorized Industrial Flow Control Valves & Actuators Distributor
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              GSTIN: 27AABCV1234F1Z8 · Registered Vendor Standard Quotation
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-blue)' }}>{quotation.quotation_number}</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date: {new Date(quotation.created_at).toLocaleDateString()}</div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'JetBrains Mono, monospace' }}>
+              {quotation.quotation_number}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              Date: {new Date(quotation.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+            </div>
+            <button
+              onClick={handleCopySummary}
+              className="btn-ghost"
+              style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', background: 'var(--bg-main)', border: '1px solid var(--border-subtle)', cursor: 'pointer', borderRadius: '4px', color: 'var(--text-secondary)' }}
+            >
+              {copiedSummary ? <Check size={12} style={{ color: 'var(--accent-green)' }} /> : <Share2 size={12} />}
+              <span>{copiedSummary ? 'Summary Copied' : 'Copy Summary'}</span>
+            </button>
           </div>
         </div>
 
-        <div style={{ marginBottom: '1.5rem', fontSize: '0.88rem' }}>
-          <div><strong>Customer:</strong> {quotation.customer_name}</div>
-          <div><strong>Grounding Status:</strong> <span className={`badge ${quotation.grounded_status === 'GROUNDED' ? 'badge-grounded' : 'badge-abstained'}`}>{quotation.grounded_status}</span></div>
+        {/* Customer & Terms Metadata Banner */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', background: 'var(--bg-main)', padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              Customer Account
+            </div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '0.2rem' }}>
+              {quotation.customer_name}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              Grounding Verification
+            </div>
+            <div style={{ marginTop: '0.2rem' }}>
+              <span className={`badge ${quotation.grounded_status === 'GROUNDED' ? 'badge-grounded' : 'badge-abstained'}`}>
+                <ShieldCheck size={12} /> {quotation.grounded_status}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              Commercial Credit Terms
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.2rem' }}>
+              <CreditCard size={13} style={{ color: 'var(--accent-blue)' }} /> Net 30 Days (Standard)
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              Quotation Validity
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.2rem' }}>
+              <Clock size={13} style={{ color: 'var(--accent-amber)' }} /> 15 Days from Issuance
+            </div>
+          </div>
         </div>
 
+        {/* Line Items Table */}
         <div className="table-container" style={{ marginBottom: '1.5rem' }}>
           <table className="table">
             <thead>
@@ -72,19 +165,24 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
           </table>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
-          <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {/* Financial Calculation Breakdown with CGST/SGST split */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem' }}>
+          <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.88rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
               <span>Subtotal:</span>
-              <span>₹{quotation.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{quotation.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>GST (18%):</span>
-              <span>₹{quotation.tax_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <span>CGST (9.00%):</span>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{halfTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem' }}>
-              <span>Total Amount:</span>
-              <span>₹{quotation.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <span>SGST (9.00%):</span>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>₹{halfTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-main)', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem' }}>
+              <span>Grand Total:</span>
+              <span style={{ color: 'var(--accent-green)', fontFamily: 'JetBrains Mono, monospace' }}>₹{quotation.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
@@ -107,7 +205,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
 
       {quotation.customer_email_draft && (
         <div className="card animate-fade-in" style={{ padding: '1.5rem', background: 'var(--bg-surface)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>
               <Mail size={18} style={{ color: 'var(--accent-blue)' }} /> Customer Communication Draft (Quotation & Communication Agent)
             </div>
@@ -118,7 +216,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({ quotation, o
             >
               {copied ? (
                 <>
-                  <Check size={14} style={{ color: 'var(--success)' }} /> Copied to Clipboard!
+                  <Check size={14} style={{ color: 'var(--accent-green)' }} /> Copied to Clipboard!
                 </>
               ) : (
                 <>
