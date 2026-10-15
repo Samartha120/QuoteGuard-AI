@@ -12,6 +12,7 @@ import { useQuotation } from '../hooks/useQuotation';
 import { quotationApi } from '../api/quotationApi';
 import { rfqApi } from '../api/rfqApi';
 import { PrintReveal, ScaleReveal, StaggerContainer, StaggerItem, AnimatedLine } from '../components/motion';
+import { RotateCcw, CheckCircle2, Clock, ShieldCheck } from 'lucide-react';
 
 export const RFQProcessing: React.FC = () => {
   const { createRFQ, processRFQ, loading } = useRFQ();
@@ -50,6 +51,11 @@ export const RFQProcessing: React.FC = () => {
     }
   };
 
+  const handleResetPipeline = () => {
+    setCurrentRFQ(null);
+    setActiveQuotation(null);
+  };
+
   return (
     <PageContainer title="Source-Grounded RFQ Agentic Pipeline">
       <PrintReveal delay={0.2} width="100%">
@@ -64,7 +70,28 @@ export const RFQProcessing: React.FC = () => {
 
       {currentRFQ && (
         <StaggerContainer delayOrder={1} className="results-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '0.75rem 1rem', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 8px var(--accent-green)' }} />
+              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Active Pipeline Results: {currentRFQ.customer_name}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                RFQ #{currentRFQ.id.slice(0, 8)}
+              </span>
+            </div>
+
+            <button
+              onClick={handleResetPipeline}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <RotateCcw size={13} /> Process Another RFQ
+            </button>
+          </div>
+
           <AnimatedLine horizontal delay={0.5} />
+
           {currentRFQ.agent_runs && (
             <StaggerItem>
               <AgentProgress agentRuns={currentRFQ.agent_runs} />
@@ -79,6 +106,12 @@ export const RFQProcessing: React.FC = () => {
               <RequirementTable requirements={currentRFQ.requirements || []} />
             </StaggerItem>
           </div>
+
+          {currentRFQ.evidence && currentRFQ.evidence.length > 0 && (
+            <StaggerItem>
+              <EvidencePanel evidence={currentRFQ.evidence} />
+            </StaggerItem>
+          )}
 
           {activeQuotation && activeQuotation.status === 'CLARIFICATION_REQUIRED' && (
             <ScaleReveal delay={0.2}>

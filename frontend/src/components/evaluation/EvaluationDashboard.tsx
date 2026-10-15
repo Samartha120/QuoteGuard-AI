@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { EvaluationMetrics, EvaluationAnalytics } from '../../types/evaluation';
 import { MetricChart } from './MetricChart';
 import { DynamicEvaluationChart } from './DynamicEvaluationChart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Play, Cpu, DollarSign, Award, CheckCircle2, ShieldCheck, Target, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Cpu, DollarSign } from 'lucide-react';
 import { useScrollReveal, useStaggerReveal } from '../../hooks/useScrollReveal';
 
 interface EvaluationDashboardProps {
@@ -20,20 +20,11 @@ const DIST_COLORS: Record<string, string> = {
   Unverified: 'var(--accent-red)',
 };
 
-const BENCHMARK_METRICS = [
-  { label: 'Routing Decisions', score: '8/8 (100%)', detail: 'Supervisor & Critic routed each scenario to correct path', icon: Target, color: '#10b981' },
-  { label: 'Line Items Extracted', score: '100%', detail: '42/42 line items and technical specs itemized without loss', icon: CheckCircle2, color: '#60a5fa' },
-  { label: 'Known Gaps Caught', score: '100%', detail: 'SS316 & Surat delivery policy gaps caught with zero hallucination', icon: ShieldCheck, color: '#34d399' },
-  { label: 'False Alarms', score: '0%', detail: 'Zero false abstentions on catalog-stocked products', icon: Award, color: '#a78bfa' },
-  { label: 'Pricing Precision', score: 'Exact', detail: 'Deterministic pricing formulas matched verified ratecard 100%', icon: Zap, color: '#fbbf24' },
-];
-
 export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metrics, analytics, onRunBenchmark, loading }) => {
   const headerRef = useScrollReveal<HTMLDivElement>();
   const metricsRef = useStaggerReveal<HTMLDivElement>();
   const statsRef = useStaggerReveal<HTMLDivElement>();
   const chartsRef = useStaggerReveal<HTMLDivElement>();
-  const [showBenchmarkDetails, setShowBenchmarkDetails] = useState(false);
 
   return (
     <div className="reveal-fade is-revealed">
@@ -45,81 +36,6 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
         <button className="btn btn-primary" onClick={onRunBenchmark} disabled={loading}>
           <Play size={16} /> {loading ? 'Running Benchmark...' : 'Run Benchmark Suite'}
         </button>
-      </div>
-
-      {/* 8-RFQ Benchmark Scorecard & 196 Automated Tests Banner */}
-      <div 
-        className="card" 
-        style={{ 
-          marginBottom: '1.5rem', 
-          padding: '1.25rem 1.5rem', 
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%)', 
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          borderRadius: 'var(--radius-lg)'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-green)' }}>
-              <Award size={22} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
-                  8-RFQ Empirical Benchmark & Verification Suite
-                </h4>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-green)', padding: '0.15rem 0.5rem', borderRadius: '9999px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                  196 / 196 TESTS PASSING
-                </span>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
-                CA3 Comprehensive Multi-Agent Evaluation · All automated unit, integration, and abstention tests verified green.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowBenchmarkDetails(!showBenchmarkDetails)}
-            style={{
-              background: 'var(--bg-main)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              fontSize: '0.75rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-            }}
-          >
-            <span>{showBenchmarkDetails ? 'Hide Benchmark Scores' : 'View 8-RFQ Benchmark Breakdown'}</span>
-            {showBenchmarkDetails ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </button>
-        </div>
-
-        {/* 8-RFQ Benchmark Metric Tiles */}
-        {showBenchmarkDetails && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px dashed var(--border-subtle)' }}>
-            {BENCHMARK_METRICS.map((bm, i) => {
-              const Icon = bm.icon;
-              return (
-                <div key={i} style={{ background: 'var(--bg-card)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{bm.label}</span>
-                    <Icon size={14} style={{ color: bm.color }} />
-                  </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: bm.color, fontFamily: 'JetBrains Mono, monospace' }}>
-                    {bm.score}
-                  </div>
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0.35rem 0 0 0', lineHeight: 1.35 }}>
-                    {bm.detail}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       <div ref={metricsRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
