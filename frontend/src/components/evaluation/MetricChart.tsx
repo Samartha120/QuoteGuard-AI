@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Target, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Target, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface MetricChartProps {
   label: string;
@@ -18,6 +18,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
   const isHallucination = label.toLowerCase().includes('hallucination');
   const targetLabel = isHallucination ? 'Target < 2.0%' : 'Target > 90.0%';
   const isHealthy = isHallucination ? value <= 2.0 : value >= 85.0;
+  const targetMark = isHallucination ? 2.0 : 90.0;
 
   return (
     <motion.div 
@@ -53,7 +54,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
             gap: '0.3rem',
           }}
         >
-          <Target size={10} />
+          {isHealthy ? <CheckCircle2 size={10} /> : <Target size={10} />}
           {targetLabel}
         </span>
       </div>
@@ -72,7 +73,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
         {value.toFixed(1)}{unit}
       </div>
 
-      {/* Progress track */}
+      {/* Progress track with target indicator */}
       <div style={{ background: 'var(--bg-surface-hover)', borderRadius: '9999px', height: '6px', overflow: 'hidden', position: 'relative', border: '1px solid var(--border-subtle)' }}>
         <div 
           style={{ 
