@@ -88,7 +88,7 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
                   <XAxis dataKey="label" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} stroke="var(--border-subtle)" />
                   <YAxis allowDecimals={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} stroke="var(--border-subtle)" width={35} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem' }} cursor={{ fill: 'var(--bg-surface-hover)' }} />
+                  <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-main)' }} cursor={{ fill: 'var(--bg-surface-hover)' }} />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                     {analytics.grounding_distribution.map(d => (
                       <Cell key={d.label} fill={DIST_COLORS[d.label] || 'var(--accent-blue)'} />
@@ -107,7 +107,7 @@ export const EvaluationDashboard: React.FC<EvaluationDashboardProps> = ({ metric
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false} />
                   <XAxis type="number" domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} stroke="var(--border-subtle)" />
                   <YAxis type="category" dataKey="agent" width={140} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} stroke="var(--border-subtle)" />
-                  <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem' }} cursor={{ fill: 'var(--bg-surface-hover)' }} formatter={(v: any) => [`${v}%`, 'Success']} />
+                  <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-main)' }} cursor={{ fill: 'var(--bg-surface-hover)' }} formatter={(v: any) => [`${v}%`, 'Success']} />
                   <Bar dataKey="success_rate" fill="var(--accent-green)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>

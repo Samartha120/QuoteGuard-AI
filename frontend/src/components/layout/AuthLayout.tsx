@@ -6,11 +6,6 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-/**
- * Premium split-screen shell for the auth pages: an animated brand/marketing
- * panel on the left and the form on the right. Collapses to a single column
- * on small screens.
- */
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   return (
     <div className="auth-shell">
@@ -18,11 +13,16 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         <div className="auth-aside-glow" />
         <div className="auth-aside-content">
           <div className="auth-brand">
-            <QuoteShieldLogo size={40} className="auth-brand-logo" />
+            <QuoteShieldLogo size={36} className="auth-brand-logo" />
             <span className="auth-brand-name">
-              <span style={{ color: '#fff' }}>Quote</span>
-              <span style={{ color: 'var(--accent-green)' }}>Guard</span>
-              <span style={{ color: 'rgba(255,255,255,0.55)', marginLeft: 6, fontWeight: 500 }}>AI</span>
+              <span style={{ color: '#ffffff', fontWeight: 700 }}>Quote</span>
+              <span style={{ 
+                background: 'linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 800,
+              }}>Guard</span>
+              <span style={{ color: 'rgba(255,255,255,0.45)', marginLeft: 6, fontSize: '0.85rem', fontWeight: 600 }}>AI</span>
             </span>
           </div>
 
@@ -30,7 +30,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             Source-grounded quotation intelligence for B2B teams.
           </h2>
           <p className="auth-aside-sub">
-            Turn RFQs into verified, citation-backed quotes — with an agentic pipeline
+            Turn complex RFQs into verified, citation-backed quotes — with an agentic pipeline
             that abstains instead of hallucinating.
           </p>
 
@@ -75,7 +75,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             </div>
           </div>
         </div>
-        <div className="auth-aside-footer">© {new Date().getFullYear()} AXION AI · QuoteGuard</div>
+        <div className="auth-aside-footer">© {new Date().getFullYear()} AXION AI · QuoteGuard Intelligence System</div>
       </div>
 
       <div className="auth-main">

@@ -216,8 +216,15 @@ export const Login: React.FC = () => {
         style={{ cursor: 'pointer' }}
         title="Click to auto-fill credentials"
       >
-        <span className="auth-demo-label">Demo credentials (click to auto-fill)</span>
-        sales.manager@vertexind.com · quoteguard123
+        <div className="auth-demo-header">
+          <span className="auth-demo-badge">Quick Demo Access</span>
+          <span className="auth-demo-action">Click to fill</span>
+        </div>
+        <div className="auth-demo-creds">
+          <span>sales.manager@vertexind.com</span>
+          <span className="auth-demo-sep">/</span>
+          <span>quoteguard123</span>
+        </div>
       </div>
     </AuthLayout>
   );

@@ -171,26 +171,35 @@ export const KnowledgeBase: React.FC = () => {
                       onClick={() => setSelectedDoc(doc)}
                       className="card" 
                       style={{ 
-                        padding: '1.25rem', cursor: 'pointer', display: 'flex', 
-                        alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem',
+                        padding: '1.25rem 1.4rem', 
+                        cursor: 'pointer', 
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        justifyContent: 'space-between', 
+                        gap: '1rem',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(16px)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: '12px',
+                        boxShadow: 'var(--card-shadow)',
                       }}
-                      whileHover={{ scale: 1.01, borderColor: 'var(--border-strong)', boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}
+                      whileHover={{ y: -2, borderColor: 'var(--accent-primary-glow)', boxShadow: 'var(--shadow-md)' }}
                     >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 500, color: 'var(--text-main)' }}>{doc.filename}</h4>
-                        <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '1rem', background: 'var(--bg-surface-hover)', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>{doc.filename}</h4>
+                        <span style={{ fontSize: '0.67rem', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: 'rgba(99, 102, 241, 0.1)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.22)', textTransform: 'uppercase', fontWeight: 600 }}>
                           {doc.document_type}
                         </span>
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                         Document indexed successfully. Contains {doc.chunks_count} knowledge chunks available for agentic retrieval.
                       </p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.35rem' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                           <Calendar size={12} /> {new Date(doc.created_at).toLocaleDateString()}
                         </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
                           <Hash size={12} /> {doc.id.substring(0, 8)}
                         </span>
                       </div>
@@ -198,11 +207,12 @@ export const KnowledgeBase: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <button 
                         onClick={(e) => toggleBookmark(doc.id, e)}
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: savedDocs.includes(doc.id) ? 'var(--accent-green)' : 'var(--text-muted)' }}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: savedDocs.includes(doc.id) ? '#34d399' : 'var(--text-muted)', transition: 'color 0.15s ease' }}
+                        title={savedDocs.includes(doc.id) ? 'Bookmarked' : 'Bookmark'}
                       >
                         {savedDocs.includes(doc.id) ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
                       </button>
-                      </div>
+                    </div>
                     </motion.div>
                   </StaggerItem>
                 ))}
