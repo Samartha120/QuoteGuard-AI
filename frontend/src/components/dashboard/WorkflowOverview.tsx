@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
-import { FileText, Database, ShieldAlert, FileCode, CheckCircle2, Cpu, Activity } from 'lucide-react';
+import { FileText, Database, ShieldAlert, FileCode, CheckCircle2, Cpu, Activity, Info, X, Zap, Server, RefreshCw } from 'lucide-react';
 import { ScaleReveal } from '../motion';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface AgentStepDetail {
+  num: string;
+  title: string;
+  icon: any;
+  desc: string;
+  badge: string;
+  telemetry: string;
+  color: string;
+  bg: string;
+  engine: string;
+  sla: string;
+  failover: string;
+  inputOutput: string;
+}
 
 export const WorkflowOverview: React.FC = () => {
   const [activeStep, setActiveStep] = useState<number | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<AgentStepDetail | null>(null);
 
-  const steps = [
+  const steps: AgentStepDetail[] = [
     { 
       num: '01', 
       title: 'RFQ Ingestion Agent',          
@@ -15,7 +31,11 @@ export const WorkflowOverview: React.FC = () => {
       badge: 'OCR & Vision', 
       telemetry: 'Speed: 210ms · Chunking: 512t',
       color: '#818cf8', 
-      bg: 'rgba(99, 102, 241, 0.12)' 
+      bg: 'rgba(99, 102, 241, 0.12)',
+      engine: 'pdfplumber + pymupdf text stream parser',
+      sla: 'SLA < 350ms · 100% extraction completeness',
+      failover: 'Re-encodes with character-level heuristic fallback if encoding is damaged',
+      inputOutput: 'Input: Raw PDF/Email bytes → Output: Sanitized RFQ text & metadata'
     },
     { 
       num: '02', 
@@ -25,7 +45,11 @@ export const WorkflowOverview: React.FC = () => {
       badge: 'Pydantic v2', 
       telemetry: 'JSON Schema Validation · Type-Safe',
       color: '#60a5fa', 
-      bg: 'rgba(59, 130, 246, 0.12)' 
+      bg: 'rgba(59, 130, 246, 0.12)',
+      engine: 'Llama-3.3-70b-versatile via Groq LPUs',
+      sla: 'SLA < 450ms · Type-enforced Pydantic schema',
+      failover: 'Checks extraction against RFQ; re-reads with focused prompt up to 2 times',
+      inputOutput: 'Input: Sanitized RFQ text → Output: List of structured line items & tolerances'
     },
     { 
       num: '03', 
@@ -35,7 +59,11 @@ export const WorkflowOverview: React.FC = () => {
       badge: 'ChromaDB', 
       telemetry: 'Cosine Sim · Top-K: 5 Candidates',
       color: '#34d399', 
-      bg: 'rgba(16, 185, 129, 0.12)' 
+      bg: 'rgba(16, 185, 129, 0.12)',
+      engine: 'all-MiniLM-L6-v2 embeddings (384-dim)',
+      sla: 'SLA < 85ms · Top-5 candidate retrieval',
+      failover: 'Threshold filtering: candidates below 0.70 score trigger unverified badge',
+      inputOutput: 'Input: Extracted specs → Output: Top-K catalog chunks with similarity scores'
     },
     { 
       num: '04', 
@@ -45,7 +73,11 @@ export const WorkflowOverview: React.FC = () => {
       badge: 'Threshold > 0.85', 
       telemetry: 'Source Provenance · Zero Fabrication',
       color: '#fbbf24', 
-      bg: 'rgba(245, 158, 11, 0.12)' 
+      bg: 'rgba(245, 158, 11, 0.12)',
+      engine: 'Deterministic Source-Grounded Guardrail Engine',
+      sla: 'SLA < 40ms · 0.00% tolerated price fabrication',
+      failover: 'Forces abstention, flags missing policy chunk, creates customer clarification',
+      inputOutput: 'Input: Retrieved evidence vs requirements → Output: Grounded vs Abstained status'
     },
     { 
       num: '05', 
@@ -55,17 +87,25 @@ export const WorkflowOverview: React.FC = () => {
       badge: 'Formula Engine', 
       telemetry: 'GST/Tax Verified · Deterministic Pricing',
       color: '#a5b4fc', 
-      bg: 'rgba(99, 102, 241, 0.12)' 
+      bg: 'rgba(99, 102, 241, 0.12)',
+      engine: 'Rule-based financial calculator + ReportLab engine',
+      sla: 'SLA < 120ms · Exact arithmetic precision',
+      failover: 'Refuses draft generation if ungrounded items remain unverified',
+      inputOutput: 'Input: Validated items & ratecard → Output: Itemized quotation & PDF'
     },
     { 
       num: '06', 
       title: 'Human Governance',       
       icon: CheckCircle2, 
       desc: 'Single-click executive signoff & delivery',     
-      badge: 'ReportLab PDF', 
+      badge: 'Audit Trail', 
       telemetry: 'Audit Ledger · Cryptographic Timestamp',
       color: '#34d399', 
-      bg: 'rgba(16, 185, 129, 0.12)' 
+      bg: 'rgba(16, 185, 129, 0.12)',
+      engine: 'Human-in-the-loop governance & audit ledger',
+      sla: 'Zero-latency sync · Immutable audit logging',
+      failover: 'Allows commercial team to override, edit lines, or generate customer inquiry email',
+      inputOutput: 'Input: Draft quotation → Output: Signed & issued commercial contract'
     },
   ];
 
@@ -106,10 +146,10 @@ export const WorkflowOverview: React.FC = () => {
             <span style={{ display: 'inline-flex', padding: '4px', borderRadius: '6px', background: 'rgba(99, 102, 241, 0.12)', color: '#818cf8' }}>
               <Cpu size={15} />
             </span>
-            5-Agent Pipeline
+            5-Agent Pipeline Architecture
           </h3>
           <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
-            Deterministic routing with strict abstention
+            Click any agent to inspect runtime engine, SLA, and self-healing strategy
           </p>
         </div>
         <span 
@@ -164,9 +204,12 @@ export const WorkflowOverview: React.FC = () => {
         {steps.map((step, idx) => {
           const Icon = step.icon;
           const isHovered = activeStep === idx;
+          const isSelected = selectedAgent?.num === step.num;
+
           return (
             <motion.div 
               key={idx}
+              onClick={() => setSelectedAgent(isSelected ? null : step)}
               onMouseEnter={() => setActiveStep(idx)}
               onMouseLeave={() => setActiveStep(null)}
               whileHover={{ x: 3 }}
@@ -179,9 +222,9 @@ export const WorkflowOverview: React.FC = () => {
                 zIndex: 1,
                 padding: '0.65rem 0.8rem',
                 borderRadius: '12px',
-                background: isHovered ? 'var(--bg-surface-hover)' : 'var(--card-subtle-bg)',
-                border: isHovered ? `1px solid ${step.color}55` : '1px solid var(--border-subtle)',
-                boxShadow: isHovered ? `0 4px 16px -2px ${step.color}22` : 'none',
+                background: isSelected ? 'var(--bg-surface-hover)' : isHovered ? 'var(--bg-surface-hover)' : 'var(--card-subtle-bg)',
+                border: isSelected ? `1.5px solid ${step.color}` : isHovered ? `1px solid ${step.color}55` : '1px solid var(--border-subtle)',
+                boxShadow: isSelected ? `0 4px 18px -2px ${step.color}33` : isHovered ? `0 4px 16px -2px ${step.color}22` : 'none',
                 transition: 'all 0.2s ease',
                 cursor: 'pointer',
               }}
@@ -216,7 +259,7 @@ export const WorkflowOverview: React.FC = () => {
                     style={{ 
                       fontSize: '0.63rem', 
                       fontFamily: 'JetBrains Mono, monospace',
-                      color: isHovered ? step.color : 'var(--text-muted)', 
+                      color: isHovered || isSelected ? step.color : 'var(--text-muted)', 
                       background: 'var(--bg-surface)', 
                       padding: '0.12rem 0.45rem', 
                       borderRadius: '5px',
@@ -228,11 +271,11 @@ export const WorkflowOverview: React.FC = () => {
                     {step.badge}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: isHovered ? 'var(--text-main)' : 'var(--text-secondary)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', transition: 'color 0.2s' }}>
+                <div style={{ fontSize: '0.72rem', color: isHovered || isSelected ? 'var(--text-main)' : 'var(--text-secondary)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', transition: 'color 0.2s' }}>
                   {step.desc}
                 </div>
                 {/* Micro-telemetry on hover */}
-                {isHovered && (
+                {isHovered && !isSelected && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -246,6 +289,81 @@ export const WorkflowOverview: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Interactive Agent Telemetry Inspector Modal / Drawer */}
+      <AnimatePresence>
+        {selectedAgent && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              marginTop: '1.25rem',
+              padding: '1.2rem',
+              borderRadius: '12px',
+              background: 'var(--bg-surface)',
+              border: `1px solid ${selectedAgent.color}44`,
+              boxShadow: `0 8px 24px -4px ${selectedAgent.color}22`,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px', background: selectedAgent.bg, color: selectedAgent.color }}>
+                  STAGE {selectedAgent.num}
+                </span>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+                  {selectedAgent.title} Architecture Spec
+                </h4>
+              </div>
+              <button
+                onClick={() => setSelectedAgent(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.2rem' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-main)', padding: '0.65rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: selectedAgent.color, fontWeight: 600, marginBottom: '0.25rem' }}>
+                  <Server size={13} /> Runtime Engine
+                </div>
+                <div style={{ color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>
+                  {selectedAgent.engine}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-main)', padding: '0.65rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#10b981', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  <Zap size={13} /> Latency Target
+                </div>
+                <div style={{ color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>
+                  {selectedAgent.sla}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-main)', padding: '0.65rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', gridColumn: 'span 2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#fbbf24', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  <RefreshCw size={13} /> Self-Correction & Failover
+                </div>
+                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  {selectedAgent.failover}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-main)', padding: '0.65rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', gridColumn: 'span 2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  <Info size={13} /> Data Contract
+                </div>
+                <div style={{ color: 'var(--text-sub)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.7rem' }}>
+                  {selectedAgent.inputOutput}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ScaleReveal>
   );
 };
