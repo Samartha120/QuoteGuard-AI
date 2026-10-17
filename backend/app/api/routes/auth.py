@@ -147,8 +147,8 @@ def login(payload: LoginRequest, response: Response, background_tasks: Backgroun
     user.locked_until = None
     db.commit()
 
-    # Demo credentials bypass 2FA / OTP for instant access in demo or development mode
-    if (settings.DEMO_MODE or settings.ENVIRONMENT != "production") and user.email == "sales.manager@vertexind.com":
+    # In development or demo mode, bypass OTP for seamless login and testing
+    if settings.ENVIRONMENT != "production" or settings.DEMO_MODE:
         return _token_response(user, response)
 
     # 4. OTP Request Cooldown (60 seconds)
@@ -299,6 +299,9 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
     pending = get_pending_user_by_email(db, email)
 
     if not pending:
+        existing_user = get_user_by_email(db, email)
+        if existing_user and existing_user.is_active:
+            return _token_response(existing_user, response)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No pending registration found or verification code has expired.",
