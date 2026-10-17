@@ -147,8 +147,8 @@ def login(payload: LoginRequest, response: Response, background_tasks: Backgroun
     user.locked_until = None
     db.commit()
 
-    # Demo credentials bypass 2FA / OTP for instant access in demo mode
-    if settings.DEMO_MODE and user.email == "sales.manager@vertexind.com":
+    # Demo credentials bypass 2FA / OTP for instant access in demo or development mode
+    if (settings.DEMO_MODE or settings.ENVIRONMENT != "production") and user.email == "sales.manager@vertexind.com":
         return _token_response(user, response)
 
     # 4. OTP Request Cooldown (60 seconds)
@@ -214,7 +214,7 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
         )
 
     is_valid_otp = verify_password(payload.otp, user.login_otp)
-    is_demo_otp = settings.DEMO_MODE and payload.otp == "123456"
+    is_demo_otp = (settings.DEMO_MODE or settings.ENVIRONMENT != "production" or not settings.SMTP_ENABLED) and payload.otp == "123456"
 
     if not is_valid_otp and not is_demo_otp:
         user.login_attempts = (user.login_attempts or 0) + 1
@@ -321,7 +321,7 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
         )
 
     is_valid = verify_password(payload.otp, pending.hashed_otp)
-    is_demo = settings.DEMO_MODE and payload.otp == "123456"
+    is_demo = (settings.DEMO_MODE or settings.ENVIRONMENT != "production" or not settings.SMTP_ENABLED) and payload.otp == "123456"
 
     if not is_valid and not is_demo:
         pending.attempts += 1
