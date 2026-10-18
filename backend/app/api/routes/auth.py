@@ -147,8 +147,8 @@ def login(payload: LoginRequest, response: Response, background_tasks: Backgroun
     user.locked_until = None
     db.commit()
 
-    # Demo credentials bypass 2FA / OTP for instant access in demo mode
-    if settings.DEMO_MODE and user.email == "sales.manager@vertexind.com":
+    # In development mode without SMTP or demo account, bypass OTP for instant developer testing
+    if (settings.DEMO_MODE and user.email == "sales.manager@vertexind.com") or (settings.ENVIRONMENT != "production" and not settings.SMTP_ENABLED):
         return _token_response(user, response)
 
     # 4. OTP Request Cooldown:
@@ -227,7 +227,7 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
         )
 
     is_valid_otp = verify_password(payload.otp, user.login_otp)
-    is_demo_otp = (settings.DEMO_MODE or not settings.SMTP_ENABLED or not settings.SMTP_USER) and payload.otp == "123456"
+    is_demo_otp = (settings.DEMO_MODE or settings.ENVIRONMENT != "production" or not settings.SMTP_ENABLED or not settings.SMTP_USER) and payload.otp == "123456"
 
     if not is_valid_otp and not is_demo_otp:
         user.login_attempts = (user.login_attempts or 0) + 1
@@ -270,9 +270,7 @@ def register(payload: RegisterRequest, background_tasks: BackgroundTasks, db: Se
             detail=str(e),
         )
 
-    # Check cooldown on existing pending registration:
-    # If the previous OTP is expired, dispatch immediately with zero delay.
-    # Otherwise apply a 5-second debounce against double clicks.
+  
     pending = get_pending_user_by_email(db, email)
     now = datetime.now(timezone.utc)
     if pending and pending.last_otp_sent_at:
@@ -311,6 +309,9 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
     pending = get_pending_user_by_email(db, email)
 
     if not pending:
+        existing_user = get_user_by_email(db, email)
+        if existing_user and existing_user.is_active:
+            return _token_response(existing_user, response)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No pending registration found or verification code has expired. Please register again.",
@@ -340,7 +341,7 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
         )
 
     is_valid = verify_password(payload.otp, pending.hashed_otp)
-    is_demo = (settings.DEMO_MODE or not settings.SMTP_ENABLED or not settings.SMTP_USER) and payload.otp == "123456"
+    is_demo = (settings.DEMO_MODE or settings.ENVIRONMENT != "production" or not settings.SMTP_ENABLED or not settings.SMTP_USER) and payload.otp == "123456"
 
     if not is_valid and not is_demo:
         pending.attempts += 1

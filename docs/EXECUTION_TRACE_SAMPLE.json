@@ -8,178 +8,34 @@
     "customer_email": "a.sharma@zenithchem.com",
     "line_items": [
       {
-        "product_name": "Industrial Valve IV-200",
+        "product_name": "Industrial Valve",
         "product_code": "IV-200",
-        "requested_spec": "Heavy Duty SS316 High-Corrosion Grade Variant",
+        "requested_spec": null,
         "material_grade": "SS316",
         "quantity": 50,
         "in_catalogue": true,
         "catalog_name": "Industrial Valve IV-200",
         "catalog_moq": 5,
         "raw_quantity": "50",
-        "extraction_confidence": 1.0,
+        "extraction_confidence": 0.75,
         "status": "abstained"
       }
     ],
-    "payment_terms": "90 Days post-installation credit",
-    "delivery_terms": "Doorstep delivery within 3 days to Surat",
-    "flags": [],
-    "extraction_confidence": 1.0
+    "payment_terms": "90 Days post-installation credit terms.",
+    "delivery_terms": "Guaranteed doorstep delivery within 3 business days to Surat.",
+    "flags": [
+      {
+        "type": "vague_spec",
+        "item": "Industrial Valve",
+        "detail": "No technical specification provided for 'Industrial Valve'.",
+        "raw_value": ""
+      }
+    ],
+    "extraction_confidence": 0.75
   },
-  "retrieved_evidence": [
-    {
-      "chunk_id": "a45f30c9-1c48-4597-b597-0776ea2bad23_chunk_0",
-      "content": "# Vertex Industrial Supplies Pvt. Ltd.\n## Official Product Catalogue & Technical Specifications (2026 Edition)\n\n### Product 1: IV-200 Heavy Duty Industrial Valve\n- **Product Code:** IV-200\n- **Category:** Industrial Flow Control Valves\n- **Standard Metallurgy / Material Grade:** Stainless Steel SS304 Body, PTFE Seals\n- **Pressure Rating:** PN16 / Class 150 (Up to 16 Bar operating pressure)\n- **Temperature Range:** -20\u00b0C to 180\u00b0C",
-      "metadata": {
-        "doc_id": "a45f30c9-1c48-4597-b597-0776ea2bad23",
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/company_catalog/product_catalog_2026.md",
-        "doc_type": "catalog",
-        "chunk_index": 0,
-        "filename": "product_catalog_2026.md",
-        "chunk_id": "a45f30c9-1c48-4597-b597-0776ea2bad23_chunk_0"
-      },
-      "score": 0.8017,
-      "vector_score": 0.8017,
-      "keyword_score": 0.8077,
-      "hybrid_score": 0.8041,
-      "is_grounded": true
-    },
-    {
-      "chunk_id": "97d90ae8-2eb5-456b-b49f-248d9990b4ca_chunk_0",
-      "content": "# Vertex Industrial Supplies Pvt. Ltd.\n## Official Product Catalogue & Technical Specifications (2026 Edition)\n\n### Product 1: IV-200 Heavy Duty Industrial Valve\n- **Product Code:** IV-200\n- **Category:** Industrial Flow Control Valves\n- **Standard Metallurgy / Material Grade:** Stainless Steel SS304 Body, PTFE Seals\n- **Pressure Rating:** PN16 / Class 150 (Up to 16 Bar operating pressure)\n- **Temperature Range:** -20\u00b0C to 180\u00b0C",
-      "metadata": {
-        "chunk_id": "97d90ae8-2eb5-456b-b49f-248d9990b4ca_chunk_0",
-        "doc_id": "97d90ae8-2eb5-456b-b49f-248d9990b4ca",
-        "chunk_index": 0,
-        "doc_type": "catalog",
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/company_catalog/product_catalog_2026.md",
-        "filename": "product_catalog_2026.md"
-      },
-      "score": 0.8017,
-      "vector_score": 0.8017,
-      "keyword_score": 0.8077,
-      "hybrid_score": 0.8041,
-      "is_grounded": true
-    },
-    {
-      "chunk_id": "a45f30c9-1c48-4597-b597-0776ea2bad23_chunk_2",
-      "content": "rder and require explicit engineering evaluation and custom price quotation.\n\n### Product 2: PV-100 High-Precision Pressure Relief Valve\n- **Product Code:** PV-100\n- **Category:** Safety & Relief Valves\n- **Standard Material Grade:** Brass / Stainless Steel SS304 Seat\n- **Pressure Set Range:** 1.0 Bar to 10.0 Bar adjustable set pressure\n- **Connection Type:** 1-inch BSP Male Threaded / Flanged ANSI 150\n- **Application:** Compressed air, inert gas, and non-corrosive fluid loops",
-      "metadata": {
-        "filename": "product_catalog_2026.md",
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/company_catalog/product_catalog_2026.md",
-        "chunk_index": 2,
-        "doc_type": "catalog",
-        "chunk_id": "a45f30c9-1c48-4597-b597-0776ea2bad23_chunk_2",
-        "doc_id": "a45f30c9-1c48-4597-b597-0776ea2bad23"
-      },
-      "score": 0.7386,
-      "vector_score": 0.7386,
-      "keyword_score": 0.1923,
-      "hybrid_score": 0.5201,
-      "is_grounded": false
-    },
-    {
-      "chunk_id": "test_c1",
-      "content": "IV-200 Industrial Valve unit price is INR 4500 per unit.",
-      "metadata": {
-        "doc_type": "pricing",
-        "filename": "pricing.csv",
-        "doc_id": "d1"
-      },
-      "score": 0.7975,
-      "vector_score": 0.7975,
-      "keyword_score": 0.5,
-      "hybrid_score": 0.6785,
-      "is_grounded": false
-    },
-    {
-      "chunk_id": "405655e9-5967-4c2f-86c9-2f73c61e6810_chunk_0",
-      "content": "Product Code                  Product Name Material Grade  Unit Price (INR)  MoQ (Units)  Bulk Discount Threshold  Bulk Discount Rate (%)  Lead Time (Days)\n0       IV-200       Industrial Valve IV-200          SS304              4500            5                       50                     5.0                 7\n1       PV-100  Pressure Relief Valve PV-100          SS304              2800           10                      100                     7.5                 5",
-      "metadata": {
-        "chunk_index": 0,
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/pricing/approved_pricing_2026.csv",
-        "filename": "approved_pricing_2026.csv",
-        "doc_type": "pricing",
-        "doc_id": "405655e9-5967-4c2f-86c9-2f73c61e6810",
-        "chunk_id": "405655e9-5967-4c2f-86c9-2f73c61e6810_chunk_0"
-      },
-      "score": 0.7122,
-      "vector_score": 0.7122,
-      "keyword_score": 0.5,
-      "hybrid_score": 0.6273,
-      "is_grounded": false
-    },
-    {
-      "chunk_id": "f97effac-c542-4fa6-b89e-88a3097004fa_chunk_0",
-      "content": "Product Code                  Product Name Material Grade  Unit Price (INR)  MoQ (Units)  Bulk Discount Threshold  Bulk Discount Rate (%)  Lead Time (Days)\n0       IV-200       Industrial Valve IV-200          SS304              4500            5                       50                     5.0                 7\n1       PV-100  Pressure Relief Valve PV-100          SS304              2800           10                      100                     7.5                 5",
-      "metadata": {
-        "chunk_index": 0,
-        "filename": "approved_pricing_2026.csv",
-        "doc_id": "f97effac-c542-4fa6-b89e-88a3097004fa",
-        "doc_type": "pricing",
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/pricing/approved_pricing_2026.csv",
-        "chunk_id": "f97effac-c542-4fa6-b89e-88a3097004fa_chunk_0"
-      },
-      "score": 0.7122,
-      "vector_score": 0.7122,
-      "keyword_score": 0.5,
-      "hybrid_score": 0.6273,
-      "is_grounded": false
-    },
-    {
-      "chunk_id": "74941e6a-bd08-40e5-9530-e472aa54e42e_chunk_0",
-      "content": "# Vertex Industrial Supplies Pvt. Ltd.\n## Standard Commercial & Delivery Terms Policy (2026)\n\n### 1. Payment Terms\n- **Standard Credit Period:** Net 30 Days from date of invoice for verified credit-approved B2B customers.\n- **Advance Payment:** 100% advance or 30% advance with balance against Proforma Invoice prior to dispatch for new customers.\n- **Accepted Modes:** RTGS, NEFT, Corporate Netbanking, and UPI for amounts up to INR 100,000.\n\n### 2. Delivery & Freight Policy",
-      "metadata": {
-        "doc_type": "policy",
-        "doc_id": "74941e6a-bd08-40e5-9530-e472aa54e42e",
-        "chunk_index": 0,
-        "chunk_id": "74941e6a-bd08-40e5-9530-e472aa54e42e_chunk_0",
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/policies/commercial_delivery_terms.md",
-        "filename": "commercial_delivery_terms.md"
-      },
-      "score": 0.7573,
-      "vector_score": 0.7573,
-      "keyword_score": 0.6735,
-      "hybrid_score": 0.7238,
-      "is_grounded": false
-    },
-    {
-      "chunk_id": "6859b309-c56d-45f0-9f6e-deb63ee7c419_chunk_0",
-      "content": "# Vertex Industrial Supplies Pvt. Ltd.\n## Standard Commercial & Delivery Terms Policy (2026)\n\n### 1. Payment Terms\n- **Standard Credit Period:** Net 30 Days from date of invoice for verified credit-approved B2B customers.\n- **Advance Payment:** 100% advance or 30% advance with balance against Proforma Invoice prior to dispatch for new customers.\n- **Accepted Modes:** RTGS, NEFT, Corporate Netbanking, and UPI for amounts up to INR 100,000.\n\n### 2. Delivery & Freight Policy",
-      "metadata": {
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/policies/commercial_delivery_terms.md",
-        "doc_id": "6859b309-c56d-45f0-9f6e-deb63ee7c419",
-        "chunk_index": 0,
-        "chunk_id": "6859b309-c56d-45f0-9f6e-deb63ee7c419_chunk_0",
-        "filename": "commercial_delivery_terms.md",
-        "doc_type": "policy"
-      },
-      "score": 0.7573,
-      "vector_score": 0.7573,
-      "keyword_score": 0.6735,
-      "hybrid_score": 0.7238,
-      "is_grounded": false
-    },
-    {
-      "chunk_id": "74941e6a-bd08-40e5-9530-e472aa54e42e_chunk_1",
-      "content": "ng, and UPI for amounts up to INR 100,000.\n\n### 2. Delivery & Freight Policy\n- **Standard Delivery:** Ex-works Pune factory warehouse (FOB Pune).\n- **Freight Charges:** Free delivery for orders exceeding INR 100,000 in order value within Western India region (Maharashtra, Gujarat). Standard freight charges billed at actuals for all other locations.",
-      "metadata": {
-        "doc_type": "policy",
-        "doc_id": "74941e6a-bd08-40e5-9530-e472aa54e42e",
-        "filename": "commercial_delivery_terms.md",
-        "source_path": "/Users/tejnarayansah/Flexi-Project/QuoteGuard-AI/data/policies/commercial_delivery_terms.md",
-        "chunk_id": "74941e6a-bd08-40e5-9530-e472aa54e42e_chunk_1",
-        "chunk_index": 1
-      },
-      "score": 0.6756,
-      "vector_score": 0.6756,
-      "keyword_score": 0.4694,
-      "hybrid_score": 0.5931,
-      "is_grounded": false
-    }
-  ],
+  "retrieved_evidence": [],
   "field_confidences": {
-    "Industrial Valve IV-200": 0.4
+    "Industrial Valve": 0.4
   },
   "grounded_status": "ABSTAINED",
   "overall_confidence": 0.4,
@@ -188,7 +44,7 @@
     "decision": "escalate",
     "issues": [
       {
-        "item": "Industrial Valve IV-200",
+        "item": "Industrial Valve",
         "kind": "conflicting",
         "detail": "requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304",
         "resolver": "customer",
@@ -200,11 +56,26 @@
         "detail": "customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us)",
         "resolver": "internal",
         "source": "rules"
+      },
+      {
+        "item": "delivery",
+        "kind": "ambiguous",
+        "detail": "Delivery responsibility and freight terms are not specified.",
+        "resolver": "customer",
+        "source": "llm",
+        "rfq_quote": "Requested Delivery: Guaranteed doorstep delivery within 3 business days to Surat."
       }
     ],
-    "advisories": [],
+    "advisories": [
+      {
+        "item": "Industrial Valve IV-200",
+        "detail": "Technical specifications such as size, pressure rating, and connection type are not provided.",
+        "note": "confirm with the customer on the purchase order"
+      }
+    ],
     "reviewed_by": [
-      "rules"
+      "rules",
+      "llm"
     ],
     "customer": "new customer: no previous RFQs or quotations"
   },
@@ -229,7 +100,7 @@
     "line_items": [
       {
         "product_code": "IV-200-UNVERIFIED",
-        "product_name": "Industrial Valve IV-200 (SS316 variant)",
+        "product_name": "Industrial Valve (SS316 variant)",
         "material_grade": "SS316",
         "quantity": 50,
         "unit_price": null,
@@ -240,54 +111,78 @@
           {
             "field_name": "material_grade",
             "source_filename": "product_catalog_2026.md",
-            "source_chunk_id": "a45f30c9-1c48-4597-b597-0776ea2bad23_chunk_0",
-            "evidence_snippet": "# Vertex Industrial Supplies Pvt. Ltd.\n## Official Product Catalogue & Technical Specifications (2026 Edition)\n\n### Product 1: IV-200 Heavy Duty Industrial Valve\n- **Product Code:** IV-200\n- **Categor",
-            "retrieval_score": 0.8017
+            "source_chunk_id": "chunk_default_01",
+            "evidence_snippet": "Custom alloy grades require explicit engineering evaluation and custom pricing.",
+            "retrieval_score": 0.95
           }
         ]
       }
     ],
-    "advisories": [],
-    "customer_email_draft": "Subject: Clarification on Your Request for Quotation (demo-rfq-2-zenith) \u2014 Vertex Industrial Supplies\n\nDear Zenith Chemical Processing Ltd.,\n\nThank you for reaching out to Vertex Industrial Supplies Pvt. Ltd. We have received your RFQ (demo-rfq-2-zenith) and our commercial sales team has initiated the review.\n\nTo ensure our formal quotation precisely aligns with your technical specifications and approved commercial terms, could you please clarify the following point(s)?\n\n  \u2022 Clarification Required (Industrial Valve IV-200): requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304. Please confirm the acceptable requirement before a formal quotation is issued.\n  \u2022 Commercial Credit Policy Mismatch: Customer requested 90-day credit terms. Standard company policy is Net 30 Days. Requires CFO approval.\n\nAs soon as you confirm, we will promptly issue your formal quotation and delivery schedule.\n\nWarm regards,\nCommercial Sales & Engineering Team\nVertex Industrial Supplies Pvt. Ltd.\nsales@vertexind.com | +91 20 2712 3456"
+    "advisories": [
+      {
+        "item": "Industrial Valve IV-200",
+        "detail": "Technical specifications such as size, pressure rating, and connection type are not provided.",
+        "note": "confirm with the customer on the purchase order"
+      }
+    ],
+    "customer_email_draft": "Subject: Clarification on Your Request for Quotation (demo-rfq-2-zenith) \u2014 Vertex Industrial Supplies\n\nDear Zenith Chemical Processing Ltd.,\n\nThank you for reaching out to Vertex Industrial Supplies Pvt. Ltd. We have received your RFQ (demo-rfq-2-zenith) and our commercial sales team has initiated the review.\n\nTo ensure our formal quotation precisely aligns with your technical specifications and approved commercial terms, could you please clarify the following point(s)?\n\n  \u2022 Clarification Required (Industrial Valve): requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304. Please confirm the acceptable requirement before a formal quotation is issued.\n  \u2022 Clarification Required (delivery): Delivery responsibility and freight terms are not specified.. Please confirm the acceptable requirement before a formal quotation is issued.\n  \u2022 Commercial Credit Policy Mismatch: Customer requested 90-day credit terms. Standard company policy is Net 30 Days. Requires CFO approval.\n\nAs soon as you confirm, we will promptly issue your formal quotation and delivery schedule.\n\nWarm regards,\nCommercial Sales & Engineering Team\nVertex Industrial Supplies Pvt. Ltd.\nsales@vertexind.com | +91 20 2712 3456"
   },
   "clarification_questions": [
-    "Clarification Required (Industrial Valve IV-200): requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304. Please confirm the acceptable requirement before a formal quotation is issued.",
+    "Clarification Required (Industrial Valve): requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304. Please confirm the acceptable requirement before a formal quotation is issued.",
+    "Clarification Required (delivery): Delivery responsibility and freight terms are not specified.. Please confirm the acceptable requirement before a formal quotation is issued.",
     "Commercial Credit Policy Mismatch: Customer requested 90-day credit terms. Standard company policy is Net 30 Days. Requires CFO approval."
   ],
   "escalation_notes": "ESCALATED BY ORCHESTRATOR: draft is ready, but Validation & Planning found items only someone in the company can decide: payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us). A sales engineer must review this RFQ.",
   "critic_feedback": {
     "verdict": "approve",
-    "issues": [],
+    "issues": [
+      {
+        "line": "delivery terms",
+        "check": "llm_review",
+        "detail": "Draft does not acknowledge or address the customer's requested guaranteed doorstep delivery within 3 business days to Surat.",
+        "fix_by": "drafting",
+        "severity": "warning",
+        "source": "llm",
+        "downgraded": "quotes not found in the RFQ and policy"
+      }
+    ],
     "fix_by": [],
     "reviewed_by": [
-      "rules"
+      "rules",
+      "llm"
     ],
-    "summary": "",
+    "summary": "The draft omits the customer's required 3\u2011day guaranteed doorstep delivery.",
     "round": 1,
-    "draft_digest": "c484397fbc0f9d0c",
+    "draft_digest": "1351f595197e9851",
     "unchanged_since_last_round": false
   },
   "agent_traces": [
     {
       "agent_name": "Requirement Analysis Agent",
       "status": "SUCCESS",
-      "output_summary": "Extracted 1 line items for 'Zenith Chemical Processing Ltd.' via LLM; Confidence=1.00",
-      "execution_time_ms": 0,
+      "output_summary": "Extracted 1 line items for 'Zenith Chemical Processing Ltd.' via LLM; Confidence=0.75; flagged 1 ambiguous requirement(s)",
+      "execution_time_ms": 1866,
       "mode": "LLM",
-      "extraction_confidence": 1.0,
-      "flags_count": 0
+      "extraction_confidence": 0.75,
+      "flags_count": 1
     },
     {
       "agent_name": "Retrieval Agent",
       "status": "SUCCESS",
-      "output_summary": "Executed 3 LLM-selected tool call(s) this run (retry: line items need catalogue, pricing and policy evidence), retrieving 9 unique evidence chunks.",
-      "execution_time_ms": 14824
+      "output_summary": "Executed 3 LLM-selected tool call(s) this run (retry: line items need catalogue, pricing and policy evidence), retrieving 0 unique evidence chunks.",
+      "execution_time_ms": 16617
+    },
+    {
+      "agent_name": "Retrieval Agent",
+      "status": "SUCCESS",
+      "output_summary": "Executed 3 LLM-selected tool call(s) this run (retry: retrieval found no evidence; search again), retrieving 0 unique evidence chunks.",
+      "execution_time_ms": 1160
     },
     {
       "agent_name": "Validation & Planning Agent",
       "status": "WARNING",
-      "output_summary": "Decision=escalate. Confidence=0.4. Customer: new customer: no previous RFQs or quotations. 2 issue(s), reviewed by rules. Industrial Valve IV-200: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us)",
-      "execution_time_ms": 673
+      "output_summary": "Decision=escalate. Confidence=0.4. Customer: new customer: no previous RFQs or quotations. 3 issue(s), reviewed by rules+llm. Industrial Valve: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us); delivery: Delivery responsibility and freight terms are not specified.",
+      "execution_time_ms": 3393
     },
     {
       "agent_name": "Quotation & Communication Agent",
@@ -297,7 +192,7 @@
       "decision": "revise_existing_draft",
       "details": {
         "revision_requested": true,
-        "task": "validation & planning: escalate; draft the clarification request covering: Industrial Valve IV-200: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us) (grade not stocked for ['Industrial Valve IV-200']; searching again cannot fix that)",
+        "task": "validation & planning: escalate; draft the clarification request covering: Industrial Valve: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us); delivery: Delivery responsibility and freight terms are not specified. (grade not stocked for ['Industrial Valve']; searching again cannot fix that)",
         "line_items": 1,
         "critic_verdict": null
       },
@@ -343,21 +238,21 @@
         "verified_items": 0,
         "unverified_items": 1,
         "tool_calls": 0,
-        "clarification_count": 2
+        "clarification_count": 3
       },
       "execution_time_ms": 0
     },
     {
       "agent_name": "Quotation & Communication Agent",
       "status": "SUCCESS",
-      "output_summary": "Agent decision=clarification_required. Status=CLARIFICATION_REQUIRED. Line Items=1. Clarifications=2.",
+      "output_summary": "Agent decision=clarification_required. Status=CLARIFICATION_REQUIRED. Line Items=1. Clarifications=3.",
       "execution_time_ms": 0
     },
     {
       "agent_name": "Critic Agent",
       "status": "SUCCESS",
-      "output_summary": "Verdict=approve (0 errors, 0 warnings; reviewed by rules)",
-      "execution_time_ms": 0
+      "output_summary": "Verdict=approve (0 errors, 1 warnings; reviewed by rules+llm)",
+      "execution_time_ms": 1825
     },
     {
       "agent_name": "Orchestrator",
@@ -370,23 +265,44 @@
     {
       "agent": "Retrieval Agent",
       "tool": "search_catalogue",
-      "query": "Industrial Valve IV-200 SS316",
-      "for_item": "Industrial Valve IV-200",
-      "results_found": 3
+      "query": "IV-200",
+      "for_item": "Industrial Valve",
+      "results_found": 0
     },
     {
       "agent": "Retrieval Agent",
       "tool": "lookup_price",
       "query": "IV-200",
-      "for_item": "Industrial Valve IV-200",
-      "results_found": 3
+      "for_item": "Industrial Valve",
+      "results_found": 0
     },
     {
       "agent": "Retrieval Agent",
       "tool": "get_delivery_policy",
       "query": null,
       "for_item": null,
-      "results_found": 3
+      "results_found": 0
+    },
+    {
+      "agent": "Retrieval Agent",
+      "tool": "search_catalogue",
+      "query": "IV-200",
+      "for_item": "Industrial Valve",
+      "results_found": 0
+    },
+    {
+      "agent": "Retrieval Agent",
+      "tool": "lookup_price",
+      "query": "IV-200",
+      "for_item": "Industrial Valve",
+      "results_found": 0
+    },
+    {
+      "agent": "Retrieval Agent",
+      "tool": "get_delivery_policy",
+      "query": null,
+      "for_item": null,
+      "results_found": 0
     }
   ],
   "messages": [
@@ -409,7 +325,7 @@
       "from": "extraction",
       "to": "supervisor",
       "type": "result",
-      "content": "Extracted 1 line items for 'Zenith Chemical Processing Ltd.' via LLM; Confidence=1.00"
+      "content": "Extracted 1 line items for 'Zenith Chemical Processing Ltd.' via LLM; Confidence=0.75; flagged 1 ambiguous requirement(s)"
     },
     {
       "step": 2,
@@ -423,59 +339,73 @@
       "from": "retrieval",
       "to": "supervisor",
       "type": "result",
-      "content": "Executed 3 LLM-selected tool call(s) this run (retry: line items need catalogue, pricing and policy evidence), retrieving 9 unique evidence chunks."
+      "content": "Executed 3 LLM-selected tool call(s) this run (retry: line items need catalogue, pricing and policy evidence), retrieving 0 unique evidence chunks."
     },
     {
       "step": 3,
+      "from": "supervisor",
+      "to": "retrieval",
+      "type": "task",
+      "content": "retrieval found no evidence; search again"
+    },
+    {
+      "step": 3,
+      "from": "retrieval",
+      "to": "supervisor",
+      "type": "result",
+      "content": "Executed 3 LLM-selected tool call(s) this run (retry: retrieval found no evidence; search again), retrieving 0 unique evidence chunks."
+    },
+    {
+      "step": 4,
       "from": "supervisor",
       "to": "validation_planning",
       "type": "task",
       "content": "evidence is in; check it is enough and plan the next step"
     },
     {
-      "step": 3,
+      "step": 4,
       "from": "validation_planning",
       "to": "customer_memory",
       "type": "tool",
       "content": "new customer: no previous RFQs or quotations"
     },
     {
-      "step": 3,
+      "step": 4,
       "from": "validation_planning",
       "to": "supervisor",
       "type": "result",
-      "content": "Decision=escalate. Confidence=0.4. Customer: new customer: no previous RFQs or quotations. 2 issue(s), reviewed by rules. Industrial Valve IV-200: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us)"
-    },
-    {
-      "step": 4,
-      "from": "supervisor",
-      "to": "drafting",
-      "type": "task",
-      "content": "validation & planning: escalate; draft the clarification request covering: Industrial Valve IV-200: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us) (grade not stocked for ['Industrial Valve IV-200']; searching again cannot fix that)"
-    },
-    {
-      "step": 4,
-      "from": "drafting",
-      "to": "supervisor",
-      "type": "result",
-      "content": "Agent decision=clarification_required. Status=CLARIFICATION_REQUIRED. Line Items=1. Clarifications=2."
+      "content": "Decision=escalate. Confidence=0.4. Customer: new customer: no previous RFQs or quotations. 3 issue(s), reviewed by rules+llm. Industrial Valve: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us); delivery: Delivery responsibility and freight terms are not specified."
     },
     {
       "step": 5,
+      "from": "supervisor",
+      "to": "drafting",
+      "type": "task",
+      "content": "validation & planning: escalate; draft the clarification request covering: Industrial Valve: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us); delivery: Delivery responsibility and freight terms are not specified. (grade not stocked for ['Industrial Valve']; searching again cannot fix that)"
+    },
+    {
+      "step": 5,
+      "from": "drafting",
+      "to": "supervisor",
+      "type": "result",
+      "content": "Agent decision=clarification_required. Status=CLARIFICATION_REQUIRED. Line Items=1. Clarifications=3."
+    },
+    {
+      "step": 6,
       "from": "supervisor",
       "to": "critic",
       "type": "task",
       "content": "draft written; review it before a human sees it"
     },
     {
-      "step": 5,
+      "step": 6,
       "from": "critic",
       "to": "supervisor",
       "type": "result",
-      "content": "Verdict=approve (0 errors, 0 warnings; reviewed by rules)"
+      "content": "Verdict=approve (0 errors, 1 warnings; reviewed by rules+llm)"
     },
     {
-      "step": 6,
+      "step": 7,
       "from": "supervisor",
       "to": "human",
       "type": "escalation",
@@ -505,6 +435,17 @@
     },
     {
       "step": 3,
+      "next": "retrieval",
+      "reason": "No evidence was found; a new search may locate catalogue, pricing, or policy data for the grade.",
+      "task": "retrieval found no evidence; search again",
+      "decided_by": "llm",
+      "options": [
+        "retrieval",
+        "validation_planning"
+      ]
+    },
+    {
+      "step": 4,
       "next": "validation_planning",
       "reason": "evidence is in; check it is enough and plan the next step",
       "task": "evidence is in; check it is enough and plan the next step",
@@ -514,17 +455,17 @@
       ]
     },
     {
-      "step": 4,
+      "step": 5,
       "next": "drafting",
-      "reason": "validation & planning: escalate; draft the clarification request covering: Industrial Valve IV-200: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us) (grade not stocked for ['Industrial Valve IV-200']; searching again cannot fix that)",
-      "task": "validation & planning: escalate; draft the clarification request covering: Industrial Valve IV-200: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us) (grade not stocked for ['Industrial Valve IV-200']; searching again cannot fix that)",
+      "reason": "validation & planning: escalate; draft the clarification request covering: Industrial Valve: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us); delivery: Delivery responsibility and freight terms are not specified. (grade not stocked for ['Industrial Valve']; searching again cannot fix that)",
+      "task": "validation & planning: escalate; draft the clarification request covering: Industrial Valve: requested grade 'SS316' is not stocked; approved grades: CARBONSTEEL, SS304; payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us); delivery: Delivery responsibility and freight terms are not specified. (grade not stocked for ['Industrial Valve']; searching again cannot fix that)",
       "decided_by": "forced",
       "options": [
         "drafting"
       ]
     },
     {
-      "step": 5,
+      "step": 6,
       "next": "critic",
       "reason": "draft written; review it before a human sees it",
       "task": "draft written; review it before a human sees it",
@@ -534,7 +475,7 @@
       ]
     },
     {
-      "step": 6,
+      "step": 7,
       "next": "escalate",
       "reason": "draft is ready, but Validation & Planning found items only someone in the company can decide: payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us)",
       "task": "draft is ready, but Validation & Planning found items only someone in the company can decide: payment terms: customer asks for 90-day credit; policy standard is Net 30, so finance must approve (no purchase history with us)",
@@ -553,11 +494,11 @@
   ],
   "attempts": {
     "extraction": 1,
-    "retrieval": 1,
+    "retrieval": 2,
     "validation_planning": 1,
     "drafting": 1,
     "critic": 1
   },
   "next_agent": "escalate",
-  "step": 6
+  "step": 7
 }

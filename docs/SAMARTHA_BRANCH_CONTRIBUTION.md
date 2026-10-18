@@ -32,7 +32,8 @@ In accordance with the **CA3 Multi-Agent AI System Rubrics**, each team member o
 +---------------------+-------------------------------+--------------------+-------------------------+
 | Vedant Nair         | Stage 3: Validation & Plan-   | vedants-work       | backend/app/agents/     |
 |                     | ning Agent, LangGraph Super-  |                    | orchestrator.py,        |
-|                     | visor & Customer Memory       |                    | validation_planning.py  |
+|                     | visor, Critic Agent, Customer |                    | validation_planning_    |
+|                     | Memory, Req. self-check       |                    | agent.py, critic_agent  |
 +---------------------+-------------------------------+--------------------+-------------------------+
 | Tej Narayan Sah     | Stage 4 & 5: Quotation &      | tej-quotation-     | backend/app/agents/     |
 |                     | Drafting Agent, Critic Loop,  | agent, tej-draft-  | drafting_agent.py,      |
@@ -76,7 +77,7 @@ flowchart TD
     A4 -- "quotation_draft\ncustomer_email_draft" --> Super
     
     %% Handoff to Critic
-    Super -- "task" --> C[5. Critic Agent\ntej-critic-revision\nLayer 1: Deterministic Rules\nLayer 2: LLM Policy Review]
+    Super -- "task" --> C[5. Critic Agent\nvedants-work\nLayer 1: Deterministic Rules\nLayer 2: LLM Policy Review]
     
     %% Critic Verdict Loop
     C -- "verdict: revise\n(issues + fix_by)" --> Super
@@ -159,7 +160,7 @@ To eliminate infinite agent loops and protect commercial SLAs, the supervisor en
   - Communication Drafting: Produces a professional customer email draft ready for one-click clipboard copying.
 - **Output:** `state.quotation_draft`, `state.clarification_questions`, `state.customer_email_draft`.
 
-#### Stage 5: Dual-Layer Critic Agent ([`critic_agent.py`](file:///d:/AXION-AI/backend/app/agents/critic_agent.py)) — *Owned by Tej & Vedant*
+#### Stage 5: Dual-Layer Critic Agent ([`critic_agent.py`](file:///d:/AXION-AI/backend/app/agents/critic_agent.py)) — *Owned by Vedant*
 - **Input:** `state.quotation_draft`, `state.retrieved_evidence`, RFQ text, and company policies.
 - **Responsibilities:**
   - **Layer 1: Deterministic Code Rules (Never trusted to an LLM):**
