@@ -7,11 +7,29 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - path: ./backend/.env
+        required: false
+      - path: ./.env
+        required: false
     environment:
       - DEMO_MODE=${DEMO_MODE:-true}
       - GROUNDING_THRESHOLD=${GROUNDING_THRESHOLD:-0.80}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - DATABASE_URL=sqlite:///./app/db/quoteguard.db
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_FALLBACK_MODEL=${OPENAI_FALLBACK_MODEL:-}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app/db/quoteguard.db}
+      - SMTP_ENABLED=${SMTP_ENABLED:-true}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-QuoteGuard AI}
+      - SMTP_TLS=${SMTP_TLS:-true}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8000}
     volumes:
       - ./data:/app/data
       - backend_db:/app/backend/app/db

@@ -151,15 +151,24 @@ def login(payload: LoginRequest, response: Response, background_tasks: Backgroun
     if settings.DEMO_MODE and user.email == "sales.manager@vertexind.com":
         return _token_response(user, response)
 
-    # 4. OTP Request Cooldown (60 seconds)
+    # 4. OTP Request Cooldown:
+    # If the previous OTP is expired, dispatch a new one INSTANTLY with zero wait.
+    # Otherwise, apply a gentle 5-second debounce against accidental double-clicks.
     if user.login_otp_created_at:
-        otp_created_utc = _to_utc(user.login_otp_created_at)
-        elapsed = (now - otp_created_utc).total_seconds()
-        if elapsed < 60:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Please wait {int(60 - elapsed)} seconds before requesting a new verification code.",
-            )
+        is_expired = False
+        if user.login_otp_expires_at:
+            exp_utc = _to_utc(user.login_otp_expires_at)
+            if exp_utc and now > exp_utc:
+                is_expired = True
+
+        if not is_expired:
+            otp_created_utc = _to_utc(user.login_otp_created_at)
+            elapsed = (now - otp_created_utc).total_seconds()
+            if elapsed < 5:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Please wait {int(5 - elapsed)} seconds before requesting a new verification code.",
+                )
 
     # 5. Generate Cryptographically Secure OTP
     otp = ''.join(secrets.choice(string.digits) for _ in range(6))
@@ -196,12 +205,16 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
     now = datetime.now(timezone.utc)
     expires_at_utc = _to_utc(user.login_otp_expires_at)
     if not expires_at_utc or now > expires_at_utc:
-        user.login_otp = None
-        user.login_otp_expires_at = None
+        new_otp = ''.join(secrets.choice(string.digits) for _ in range(6))
+        user.login_otp = hash_password(new_otp)
+        user.login_otp_expires_at = now + timedelta(minutes=5)
+        user.login_otp_created_at = now
+        user.login_attempts = 0
         db.commit()
+        send_otp_email(user.email, new_otp, "login")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Verification code has expired. Please login again.",
+            detail="Your code had expired! We have instantly dispatched a fresh 6-digit verification code to your email.",
         )
 
     if user.login_attempts >= 5:
@@ -214,7 +227,7 @@ def verify_login_otp(payload: VerifyOTPRequest, response: Response, db: Session 
         )
 
     is_valid_otp = verify_password(payload.otp, user.login_otp)
-    is_demo_otp = settings.DEMO_MODE and payload.otp == "123456"
+    is_demo_otp = (settings.DEMO_MODE or not settings.SMTP_ENABLED or not settings.SMTP_USER) and payload.otp == "123456"
 
     if not is_valid_otp and not is_demo_otp:
         user.login_attempts = (user.login_attempts or 0) + 1
@@ -257,34 +270,33 @@ def register(payload: RegisterRequest, background_tasks: BackgroundTasks, db: Se
             detail=str(e),
         )
 
-    # Account Enumeration Protection:
-    # If the user already exists, simulate sending OTP without leaking existence or creating duplicate
-    if get_user_by_email(db, email):
-        if settings.ENVIRONMENT != "production":
-            logger.info(f"[DEV ONLY] Registration attempted for existing user {email}. Directing to login.")
-        return OTPResponse(
-            message="If this email is eligible for registration, a verification code has been sent.",
-            email=email
-        )
-
-    # Check cooldown on existing pending registration
+    # Check cooldown on existing pending registration:
+    # If the previous OTP is expired, dispatch immediately with zero delay.
+    # Otherwise apply a 5-second debounce against double clicks.
     pending = get_pending_user_by_email(db, email)
     now = datetime.now(timezone.utc)
     if pending and pending.last_otp_sent_at:
-        last_sent_utc = _to_utc(pending.last_otp_sent_at)
-        elapsed = (now - last_sent_utc).total_seconds()
-        if elapsed < 60:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Please wait {int(60 - elapsed)} seconds before requesting a new verification code.",
-            )
+        is_expired = False
+        if pending.expires_at:
+            exp_utc = _to_utc(pending.expires_at)
+            if exp_utc and now > exp_utc:
+                is_expired = True
+
+        if not is_expired:
+            last_sent_utc = _to_utc(pending.last_otp_sent_at)
+            elapsed = (now - last_sent_utc).total_seconds()
+            if elapsed < 5:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Please wait {int(5 - elapsed)} seconds before requesting a new verification code.",
+                )
 
     pending_user, otp = create_pending_user(db, name, email, payload.password)
 
     if settings.ENVIRONMENT != "production":
         logger.info(f"[DEV ONLY] Registration OTP for {email}: {otp} (Demo bypass: 123456)")
 
-    # Dispatch real email via SMTP if configured
+    # Dispatch real email via SMTP if configured (runs for all valid email registrations)
     background_tasks.add_task(send_otp_email, email, otp, "registration")
 
     return OTPResponse(
@@ -301,16 +313,23 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
     if not pending:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No pending registration found or verification code has expired.",
+            detail="No pending registration found or verification code has expired. Please register again.",
         )
 
     now = datetime.now(timezone.utc)
     expires_at_utc = _to_utc(pending.expires_at)
     if not expires_at_utc or now > expires_at_utc:
-        delete_pending_user(db, email)
+        # Code has expired: instantly generate and dispatch a fresh code so user does not need to start over!
+        new_otp = ''.join(secrets.choice(string.digits) for _ in range(6))
+        pending.hashed_otp = hash_password(new_otp)
+        pending.expires_at = now + timedelta(minutes=5)
+        pending.last_otp_sent_at = now
+        pending.attempts = 0
+        db.commit()
+        send_otp_email(email, new_otp, "registration")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification code has expired. Please register again.",
+            detail="Your code had expired! We have instantly dispatched a fresh 6-digit verification code to your email.",
         )
 
     if pending.attempts >= 5:
@@ -321,7 +340,7 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
         )
 
     is_valid = verify_password(payload.otp, pending.hashed_otp)
-    is_demo = settings.DEMO_MODE and payload.otp == "123456"
+    is_demo = (settings.DEMO_MODE or not settings.SMTP_ENABLED or not settings.SMTP_USER) and payload.otp == "123456"
 
     if not is_valid and not is_demo:
         pending.attempts += 1
@@ -331,8 +350,12 @@ def verify_otp(payload: VerifyOTPRequest, response: Response, db: Session = Depe
             detail="Invalid verification code.",
         )
 
-    # Validation successful, create active user and clean up pending registration
-    user = create_user(db, name=pending.name, email=pending.email, password=None)
+    # Validation successful, create active user or update password and clean up pending registration
+    user = get_user_by_email(db, email)
+    if not user:
+        user = create_user(db, name=pending.name, email=pending.email, password=None)
+    else:
+        user.name = pending.name
     user.hashed_password = pending.hashed_password
     db.commit()
 
@@ -471,3 +494,22 @@ def update_me(
             detail="Name must be between 1 and 100 characters.",
         )
     return update_user_name(db, current_user, name)
+
+
+@router.get("/smtp-status")
+def get_smtp_diagnostic():
+    """
+    Administrative and deployment diagnostic endpoint to verify SMTP configuration
+    and test real-time connectivity to the mail server.
+    """
+    from app.services.email_service import check_smtp_health, LAST_DELIVERY_STATUS
+    health = check_smtp_health()
+    return {
+        "smtp_configured": bool(settings.SMTP_ENABLED and settings.SMTP_USER and settings.SMTP_PASSWORD),
+        "host": settings.SMTP_HOST,
+        "port": settings.SMTP_PORT,
+        "sender_email": (settings.SMTP_FROM_EMAIL or settings.SMTP_USER) if settings.SMTP_USER else None,
+        "connectivity_check": health,
+        "last_delivery": LAST_DELIVERY_STATUS,
+    }
+

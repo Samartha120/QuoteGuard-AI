@@ -17,10 +17,21 @@ export const Signup: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'register' | 'otp'>('register');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [resendCooldown, setResendCooldown] = useState(5);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    let timer: any;
+    if (step === 'otp' && resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [step, resendCooldown]);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError(null);
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.');
@@ -30,12 +41,20 @@ export const Signup: React.FC = () => {
     try {
       await register(name.trim(), email.trim(), password);
       setStep('otp');
+      setResendCooldown(5);
     } catch (err: any) {
       const status = err?.response?.status;
-      if (status === 409) setError(err?.response?.data?.detail || 'An account with this email already exists.');
-      else if (status === 422) setError(err?.response?.data?.detail || 'Please check your details.');
-      else if (err?.response) setError('Something went wrong. Please try again.');
-      else setError('Cannot reach the server. Is the backend running on port 8000?');
+      if (status === 409) {
+        setError(err?.response?.data?.detail || 'An account with this email already exists. Please sign in instead.');
+      } else if (status === 429) {
+        setError(err?.response?.data?.detail || 'Please wait a moment before requesting another verification code.');
+      } else if (status === 422) {
+        setError(err?.response?.data?.detail || 'Please check your details.');
+      } else if (err?.response) {
+        setError(err?.response?.data?.detail || 'Something went wrong. Please try again.');
+      } else {
+        setError('Cannot reach the server. Is the backend running on port 8000?');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -99,9 +118,36 @@ export const Signup: React.FC = () => {
           <ShieldCheck size={48} className="auth-icon-large" style={{ color: 'var(--primary-light)', margin: '0 auto 1rem' }} />
           <h1 className="auth-title">Verify your email</h1>
           <p className="auth-subtitle">
-            We sent a 6-digit code to <br/>
+            We sent a 6-digit verification code to <br/>
             <strong>{email}</strong>
+            <button
+              type="button"
+              onClick={() => { setStep('register'); setError(null); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary-light)',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginLeft: '8px',
+                textDecoration: 'underline'
+              }}
+            >
+              (Edit)
+            </button>
           </p>
+          <div style={{
+            fontSize: '12px',
+            color: 'var(--text-secondary)',
+            backgroundColor: 'rgba(56, 189, 248, 0.08)',
+            border: '1px solid rgba(56, 189, 248, 0.2)',
+            borderRadius: 'var(--radius-md)',
+            padding: '8px 12px',
+            marginTop: '12px',
+            textAlign: 'center'
+          }}>
+            Please check your inbox or spam folder. Real OTP codes expire in 5 minutes.
+          </div>
         </div>
 
         <form onSubmit={handleVerifyOtp} className="auth-form">
@@ -139,7 +185,22 @@ export const Signup: React.FC = () => {
         </form>
         
         <p className="auth-alt" style={{ marginTop: '1.5rem' }}>
-          Didn't receive the code? <button type="button" className="auth-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }} onClick={handleSubmit}>Resend</button>
+          Didn't receive the code?{' '}
+          {resendCooldown > 0 ? (
+            <span style={{ color: 'var(--text-secondary)', fontSize: 'inherit' }}>
+              Resend in {resendCooldown}s
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="auth-link"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}
+              onClick={() => handleSubmit()}
+              disabled={submitting}
+            >
+              Resend Code
+            </button>
+          )}
         </p>
       </AuthLayout>
     );

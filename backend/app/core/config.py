@@ -50,9 +50,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
 
     # SMTP / Email Settings (for real OTP delivery to Gmail / Outlook / etc.)
-    SMTP_ENABLED: bool = False
+    # Port 465 (Direct SSL) is default because it avoids port 587 STARTTLS timeouts in cloud networks (OCI/AWS)
+    SMTP_ENABLED: bool = True
     SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_PORT: int = 587
+    SMTP_PORT: int = 465
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
@@ -89,7 +90,7 @@ class Settings(BaseSettings):
         return os.path.join(self.DATA_DIR, "pricing", "approved_pricing_2026.csv")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env", "backend/.env"),
         case_sensitive=True,
         extra="ignore"
     )

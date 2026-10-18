@@ -1,10 +1,73 @@
 import smtplib
+import ssl
 import time
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate, make_msgid
 from app.core.config import settings
 from app.core.logging import logger
+
+# Global in-memory telemetry for email delivery diagnostics
+LAST_DELIVERY_STATUS = {
+    "timestamp": None,
+    "recipient": None,
+    "success": False,
+    "attempt": 0,
+    "elapsed_seconds": 0.0,
+    "error": None,
+    "port_used": None,
+}
+
+
+def check_smtp_health() -> dict:
+    """
+    Live connectivity probe for SMTP settings.
+    Tests DNS resolution, TCP handshake, TLS/SSL negotiation, and SMTP AUTH.
+    Returns status dict without exposing sensitive credentials.
+    """
+    if not settings.SMTP_ENABLED:
+        return {"configured": False, "status": "disabled", "detail": "SMTP_ENABLED is false"}
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        return {"configured": False, "status": "unconfigured", "detail": "SMTP_USER or SMTP_PASSWORD is not set"}
+
+    smtp_password = settings.SMTP_PASSWORD.replace(" ", "").strip()
+    ports_to_test = [settings.SMTP_PORT, 465 if settings.SMTP_PORT != 465 else 587]
+
+    for port in ports_to_test:
+        server = None
+        try:
+            ctx = ssl.create_default_context()
+            if port == 465:
+                server = smtplib.SMTP_SSL(settings.SMTP_HOST, 465, context=ctx, timeout=6)
+            else:
+                server = smtplib.SMTP(settings.SMTP_HOST, port, timeout=6)
+                if settings.SMTP_TLS:
+                    server.starttls(context=ctx)
+
+            server.login(settings.SMTP_USER.strip(), smtp_password)
+            server.quit()
+            return {
+                "configured": True,
+                "status": "connected",
+                "host": settings.SMTP_HOST,
+                "port": port,
+                "detail": f"Successfully authenticated as {settings.SMTP_USER} via port {port}",
+            }
+        except Exception as e:
+            if server:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
+            logger.warning(f"[SMTP Health Probe] Port {port} test failed: {e}")
+
+    return {
+        "configured": True,
+        "status": "failed",
+        "host": settings.SMTP_HOST,
+        "detail": "Failed to connect to SMTP server on ports 465 and 587. Check firewall or App Password.",
+    }
 
 
 def send_otp_email(to_email: str, otp: str, purpose: str = "login", max_retries: int = 3) -> bool:
@@ -13,9 +76,10 @@ def send_otp_email(to_email: str, otp: str, purpose: str = "login", max_retries:
     Features:
       - Validates recipient email
       - RFC 5322 anti-spam headers (Message-ID, Date, High Priority)
-      - Dual connection strategy (SSL 465 + TLS 587 fallback)
+      - Dual connection strategy (SSL 465 + TLS 587 fallback with default SSL context)
       - Automatic exponential retry mechanism (up to 3 attempts)
       - Branded dark-mode responsive HTML template + Plaintext fallback
+      - Live telemetry tracking for administrative verification
     """
     clean_to_email = to_email.strip().lower()
 
@@ -25,6 +89,15 @@ def send_otp_email(to_email: str, otp: str, purpose: str = "login", max_retries:
             f"[SMTP Disabled/Unconfigured] OTP for {clean_to_email}: {otp} "
             f"(Configure SMTP_ENABLED=true and SMTP credentials in .env to dispatch real emails)"
         )
+        LAST_DELIVERY_STATUS.update({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "recipient": clean_to_email,
+            "success": False,
+            "attempt": 0,
+            "elapsed_seconds": 0.0,
+            "error": "SMTP_ENABLED is False or credentials missing in .env",
+            "port_used": None,
+        })
         return False
 
     sender_email = (settings.SMTP_FROM_EMAIL or settings.SMTP_USER).strip().lower()
@@ -183,6 +256,7 @@ If you did not make this request, you can safely ignore this email.
     # Robust multi-attempt loop with backoff and dual-port switching
     start_time = time.time()
     last_error = None
+    successful_port = None
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -198,13 +272,15 @@ If you did not make this request, you can safely ignore this email.
             connected = False
             for port in ports_to_try:
                 try:
+                    ctx = ssl.create_default_context()
                     if port == 465:
-                        server = smtplib.SMTP_SSL(settings.SMTP_HOST, 465, timeout=10)
+                        server = smtplib.SMTP_SSL(settings.SMTP_HOST, 465, context=ctx, timeout=7)
                     else:
-                        server = smtplib.SMTP(settings.SMTP_HOST, port, timeout=10)
+                        server = smtplib.SMTP(settings.SMTP_HOST, port, timeout=7)
                         if settings.SMTP_TLS:
-                            server.starttls()
+                            server.starttls(context=ctx)
                     connected = True
+                    successful_port = port
                     break
                 except Exception as p_err:
                     logger.warning(f"[Email Dispatch] Port {port} connection failed: {p_err}. Trying alternate...")
@@ -218,12 +294,22 @@ If you did not make this request, you can safely ignore this email.
                 raise ConnectionError("Unable to establish SMTP connection on ports 465 or 587.")
 
             # Authenticate and deliver
-            server.login(settings.SMTP_USER, smtp_password)
+            server.login(settings.SMTP_USER.strip(), smtp_password)
             server.sendmail(sender_email, [clean_to_email], msg.as_string())
             server.quit()
 
             elapsed = round(time.time() - start_time, 2)
-            logger.info(f"[Email Dispatch] SUCCESS: OTP delivered to {clean_to_email} in {elapsed}s (attempt {attempt}).")
+            logger.info(f"[Email Dispatch] SUCCESS: OTP delivered to {clean_to_email} in {elapsed}s (attempt {attempt}, port {successful_port}).")
+
+            LAST_DELIVERY_STATUS.update({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "recipient": clean_to_email,
+                "success": True,
+                "attempt": attempt,
+                "elapsed_seconds": elapsed,
+                "error": None,
+                "port_used": successful_port,
+            })
             return True
 
         except Exception as err:
@@ -236,8 +322,18 @@ If you did not make this request, you can safely ignore this email.
                 backoff = attempt * 1.0
                 time.sleep(backoff)
 
+    elapsed = round(time.time() - start_time, 2)
     logger.error(
         f"[Email Dispatch] CRITICAL: Failed to deliver OTP to {clean_to_email} "
-        f"after {max_retries} attempts. Last error: {last_error}"
+        f"after {max_retries} attempts ({elapsed}s). Last error: {last_error}"
     )
+    LAST_DELIVERY_STATUS.update({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "recipient": clean_to_email,
+        "success": False,
+        "attempt": max_retries,
+        "elapsed_seconds": elapsed,
+        "error": str(last_error),
+        "port_used": successful_port,
+    })
     return False
