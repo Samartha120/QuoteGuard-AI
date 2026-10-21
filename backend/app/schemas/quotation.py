@@ -22,7 +22,7 @@ class LineItemSchema(BaseModel):
     citations: List[CitationSchema] = []
 
 class ApprovalActionRequest(BaseModel):
-    action: str # APPROVED, REJECTED, REQUEST_CHANGES
+    action: Optional[str] = None # APPROVED, REJECTED, REQUEST_CHANGES; the route already says which, so the UI sends only notes
     notes: Optional[str] = None
 
 class ApprovalSchema(BaseModel):
