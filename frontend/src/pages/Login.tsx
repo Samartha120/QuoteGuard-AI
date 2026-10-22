@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthLayout } from '../components/layout/AuthLayout';
-import { GoogleButton } from '../components/layout/GoogleButton';
 import { LogIn, AlertCircle, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -207,9 +206,7 @@ export const Login: React.FC = () => {
         <p className="auth-subtitle">Sign in to your QuoteGuard workspace.</p>
       </div>
 
-      <GoogleButton onError={setError} />
 
-      <div className="auth-divider"><span>or continue with email</span></div>
 
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group">
