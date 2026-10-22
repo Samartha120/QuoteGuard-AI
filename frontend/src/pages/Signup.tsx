@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthLayout } from '../components/layout/AuthLayout';
-import { GoogleButton } from '../components/layout/GoogleButton';
 import { UserPlus, AlertCircle, Mail, Lock, User as UserIcon, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export const Signup: React.FC = () => {
@@ -213,9 +212,7 @@ export const Signup: React.FC = () => {
         <p className="auth-subtitle">Start generating source-grounded quotes in minutes.</p>
       </div>
 
-      <GoogleButton onError={setError} />
 
-      <div className="auth-divider"><span>or sign up with email</span></div>
 
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group">
