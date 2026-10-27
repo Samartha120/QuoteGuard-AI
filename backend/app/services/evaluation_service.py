@@ -269,11 +269,15 @@ def get_evaluation_analytics(
     ]
 
     # --- Agent success rates ---
+    # ACTION rows are a single agent's intermediate steps, not separate runs, and an
+    # orchestrator ESCALATED row is the intended hand-off to a human, not a failure.
+    ok_statuses = ("SUCCESS", "WARNING", "ESCALATED")
+    agent_runs = [ar for ar in agent_runs if ar.status != "ACTION"]
     agent_totals: Dict[str, int] = {}
     agent_success: Dict[str, int] = {}
     for ar in agent_runs:
         agent_totals[ar.agent_name] = agent_totals.get(ar.agent_name, 0) + 1
-        if ar.status in ("SUCCESS", "WARNING"):
+        if ar.status in ok_statuses:
             agent_success[ar.agent_name] = agent_success.get(ar.agent_name, 0) + 1
     agent_success_rates = [
         {
@@ -285,7 +289,7 @@ def get_evaluation_analytics(
     ]
     # --- Headline metrics from operational data ---
     total_agent_runs = len(agent_runs)
-    successful_agent_runs = sum(1 for ar in agent_runs if ar.status in ("SUCCESS", "WARNING"))
+    successful_agent_runs = sum(1 for ar in agent_runs if ar.status in ok_statuses)
     validation_runs = [ar for ar in agent_runs if "valid" in (ar.agent_name or "").lower()]
     validation_pass = sum(1 for ar in validation_runs if ar.status == "SUCCESS")
     all_latencies = [float(ar.execution_time_ms) for ar in agent_runs if ar.execution_time_ms is not None]

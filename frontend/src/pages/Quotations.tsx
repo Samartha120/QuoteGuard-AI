@@ -308,7 +308,8 @@ export const Quotations: React.FC = () => {
                         key={q.id} 
                         className="table-row"
                         whileHover={{ backgroundColor: 'rgba(99, 102, 241, 0.03)' }}
-                        style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}
+                        onClick={() => navigate(`/quotations/${q.id}`)}
+                        style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease', cursor: 'pointer' }}
                       >
                         <td style={{ paddingLeft: '1.25rem', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.84rem' }}>
                           {q.quotation_number}
@@ -356,7 +357,7 @@ export const Quotations: React.FC = () => {
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} 
-                              onClick={() => quotationApi.downloadPDF(q.id)}
+                              onClick={(e) => { e.stopPropagation(); quotationApi.downloadPDF(q.id); }}
                             >
                               <Download size={12} /> PDF
                             </button>
